@@ -1,6 +1,7 @@
 import ConvertDiamondsModal from "./ConvertDiamondsModal";
 import ErrorModal from "./ErrorModal";
 import GenericModal from "./GenericModal";
+import ImageUrlModal from "./ImageUrlModal";
 import LogoutModal from "./LogoutModal";
 import ModalBody from "./ModalBody";
 import ModalButtonContainer from "./ModalButtonContainer";
@@ -14,6 +15,7 @@ export {
     ConvertDiamondsModal,
     ErrorModal,
     GenericModal,
+    ImageUrlModal,
     LogoutModal,
     ModalBody,
     ModalButtonContainer,

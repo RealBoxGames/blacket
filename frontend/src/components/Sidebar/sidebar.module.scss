@@ -260,14 +260,14 @@
 }
 
 .pageScroller {
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
 .pageScrollerStaff {
-    height: 30%;
-    margin-top: 15%;
-    overflow-y: auto;
+    flex-shrink: 0;
+    margin-bottom: 15px;
     overflow-x: hidden;
 }

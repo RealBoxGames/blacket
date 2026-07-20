@@ -68,9 +68,22 @@ export class ChatService {
                         username: true,
                         avatar: { select: { blookId: true, shiny: true } }
                     }
+                },
+                messages: {
+                    take: 1,
+                    orderBy: { createdAt: "desc" },
+                    select: { createdAt: true }
                 }
-            },
-            orderBy: { createdAt: "desc" }
+            }
+        });
+
+        // sort by most recent message (falling back to room creation for
+        // conversations with no messages yet) so active DMs float to the top
+        rooms.sort((a, b) => {
+            const aTime = a.messages[0]?.createdAt ?? a.createdAt;
+            const bTime = b.messages[0]?.createdAt ?? b.createdAt;
+
+            return bTime.getTime() - aTime.getTime();
         });
 
         return rooms.map((room) => ({

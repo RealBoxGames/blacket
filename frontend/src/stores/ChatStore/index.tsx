@@ -13,6 +13,7 @@ const COMMAND_REGEX = /^\/(\w+)(?:\s+([\s\S]*))?$/;
 
 export const useChatStore = create<ChatStore>((set) => ({
     messages: [],
+    loadingMessages: false,
     usersTyping: [],
     replyingTo: null,
     editing: null,
@@ -24,6 +25,19 @@ export const useChatStore = create<ChatStore>((set) => ({
     unreadDmUserIds: [],
     markDmUnread: (userId) => set((s) => s.unreadDmUserIds.includes(userId) ? s : { unreadDmUserIds: [...s.unreadDmUserIds, userId] }),
     clearDmUnread: (userId) => set((s) => s.unreadDmUserIds.includes(userId) ? { unreadDmUserIds: s.unreadDmUserIds.filter((id) => id !== userId) } : s),
+
+    dms: [],
+    setDms: (dms) => set({ dms }),
+    touchDmRoom: (roomId) => set((s) => {
+        const index = s.dms.findIndex((dm) => dm.roomId === roomId);
+        if (index <= 0) return s;
+
+        const dms = [...s.dms];
+        const [entry] = dms.splice(index, 1);
+        dms.unshift(entry);
+
+        return { dms };
+    }),
 
     setReplyingTo: (message) => set({ replyingTo: message }),
     setEditing: (message) => set({ editing: message }),
@@ -48,6 +62,9 @@ export function useChat() {
         if (!user) return [];
 
         const r = roomOverride ?? chatStore.room;
+
+        useChatStore.setState({ loadingMessages: true });
+
         const messages = await getMessages(r, 50).then((res) => res.data).catch(() => []);
         const userMap = new Map<string, boolean>();
 
@@ -55,7 +72,7 @@ export function useChat() {
 
         await Promise.all(Array.from(userMap.keys()).map((uid) => addCachedUser(uid)));
 
-        useChatStore.setState({ messages });
+        useChatStore.setState({ messages, loadingMessages: false });
 
         return messages;
     };

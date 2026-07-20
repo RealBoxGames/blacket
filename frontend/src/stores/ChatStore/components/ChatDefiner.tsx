@@ -129,6 +129,10 @@ export default function ChatDefiner() {
         addMention(data);
         addDmNotification(data);
 
+        // bump the DM to the top of the list on any new message in it,
+        // regardless of who sent it or which page is currently open
+        if (data.roomId !== 0 && data.roomId !== 1) useChatStore.getState().touchDmRoom(data.roomId);
+
         // mentions/toasts should fire regardless of which room is open, but
         // don't let a message from a different room end up in this one's list
         if (data.roomId !== room) return;

@@ -100,7 +100,9 @@ export function useUser() {
     const getUserAvatarPath = (user: PrivateUser | null): string => {
         if (!user) return window.constructCDNUrl("/content/icons/error.png");
 
-        if (user.customAvatar)
+        if (user.customAvatarUrl)
+            return user.customAvatarUrl;
+        else if (user.customAvatar)
             return `${import.meta.env.VITE_CDN_URL}/users/${user.customAvatar.userId}/${user.customAvatar.uploadId}/${user.customAvatar.filename}`;
         else if (user.avatar) {
             const blook = blooks.find((b) => b.id === user.avatar?.blookId);
@@ -114,7 +116,9 @@ export function useUser() {
     const getUserBannerPath = (user: PrivateUser | null): string => {
         if (!user) return window.constructCDNUrl("/content/icons/error.png");
 
-        if (user.customBanner)
+        if (user.customBannerUrl)
+            return user.customBannerUrl;
+        else if (user.customBanner)
             return `${import.meta.env.VITE_CDN_URL}/users/${user.customBanner.userId}/${user.customBanner.uploadId}/${user.customBanner.filename}`;
         else if (user.bannerId)
             return resourceIdToPath(user.bannerId) || window.errorImage;

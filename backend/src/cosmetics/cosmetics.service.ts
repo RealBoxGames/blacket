@@ -18,6 +18,8 @@ import {
     NotFound,
     Forbidden,
     CosmeticsChangeAvatarDto,
+    CosmeticsChangeAvatarUrlDto,
+    CosmeticsChangeBannerUrlDto,
     CosmeticsUploadAvatarDto,
     CosmeticsUploadBannerDto,
     InternalServerError
@@ -37,7 +39,8 @@ export class CosmeticsService {
             await this.prismaService.user.update({
                 data: {
                     avatar: { disconnect: true },
-                    customAvatar: { disconnect: true }
+                    customAvatar: { disconnect: true },
+                    customAvatarUrl: null
                 },
                 where: { id: userId }
             });
@@ -53,7 +56,8 @@ export class CosmeticsService {
             await this.prismaService.user.update({
                 data: {
                     avatar: { connect: { id: blook.id } },
-                    customAvatar: { disconnect: true }
+                    customAvatar: { disconnect: true },
+                    customAvatarUrl: null
                 },
                 where: { id: userId }
             });
@@ -73,7 +77,33 @@ export class CosmeticsService {
         await this.prismaService.user.update({
             data: {
                 banner: { connect: { id: banner.imageId } },
-                customBanner: { disconnect: true }
+                customBanner: { disconnect: true },
+                customBannerUrl: null
+            },
+            where: { id: userId }
+        });
+    }
+
+    // lets a qualifying user set their avatar/banner to any image URL (e.g.
+    // hosted on a free image host like imgur) instead of going through the
+    // S3 upload pipeline
+    async changeAvatarUrl(userId: string, dto: CosmeticsChangeAvatarUrlDto) {
+        await this.prismaService.user.update({
+            data: {
+                avatar: { disconnect: true },
+                customAvatar: { disconnect: true },
+                customAvatarUrl: dto.url
+            },
+            where: { id: userId }
+        });
+    }
+
+    async changeBannerUrl(userId: string, dto: CosmeticsChangeBannerUrlDto) {
+        await this.prismaService.user.update({
+            data: {
+                banner: { disconnect: true },
+                customBanner: { disconnect: true },
+                customBannerUrl: dto.url
             },
             where: { id: userId }
         });
@@ -166,7 +196,8 @@ export class CosmeticsService {
         await this.prismaService.user.update({
             data: {
                 avatar: { disconnect: true },
-                customAvatar: { connect: { id: newUpload.id } }
+                customAvatar: { connect: { id: newUpload.id } },
+                customAvatarUrl: null
             },
             where: { id: userId }
         });
@@ -214,7 +245,10 @@ export class CosmeticsService {
         if (!newUpload) throw new InternalServerErrorException(InternalServerError.DEFAULT);
 
         await this.prismaService.user.update({
-            data: { customBanner: { connect: { id: newUpload.id } } },
+            data: {
+                customBanner: { connect: { id: newUpload.id } },
+                customBannerUrl: null
+            },
             where: { id: userId }
         });
 

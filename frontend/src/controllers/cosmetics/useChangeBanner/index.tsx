@@ -1,7 +1,7 @@
 import { useUser } from "@stores/UserStore/index";
 import { useData } from "@stores/DataStore/index";
 
-import { CosmeticsChangeBannerDto, CosmeticsUploadBannerDto, NotFound } from "@blacket/types";
+import { CosmeticsChangeBannerDto, CosmeticsChangeBannerUrlDto, CosmeticsUploadBannerDto, NotFound } from "@blacket/types";
 
 export function useChangeBanner() {
     const { user, setUser } = useUser();
@@ -25,5 +25,13 @@ export function useChangeBanner() {
         })
         .catch(reject));
 
-    return { changeBanner, uploadBanner };
+    const changeBannerUrl = (dto: CosmeticsChangeBannerUrlDto) => new Promise<Fetch2Response>((resolve, reject) => window.fetch2.patch("/api/cosmetics/banner/url", dto)
+        .then((res: Fetch2Response) => {
+            setUser({ ...user, bannerId: undefined, customBanner: undefined, customBannerUrl: dto.url });
+
+            resolve(res);
+        })
+        .catch(reject));
+
+    return { changeBanner, uploadBanner, changeBannerUrl };
 }

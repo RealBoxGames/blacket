@@ -44,6 +44,8 @@ export class PrivateUser {
 
     customAvatar?: Upload;
     customBanner?: Upload;
+    customAvatarUrl?: string | null;
+    customBannerUrl?: string | null;
 
     titleId: number;
     fontId: number;

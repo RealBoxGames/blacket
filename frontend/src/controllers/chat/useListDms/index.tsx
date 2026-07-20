@@ -1,4 +1,5 @@
-type DmEntry = { roomId: number; otherUser: { id: string; username: string; avatar?: { blookId: number; shiny: boolean } | null } | null };
+import { DmEntry } from "@stores/ChatStore/chatStore.d";
+
 type Response = Fetch2Response & { data: DmEntry[] };
 
 export function useListDms() {

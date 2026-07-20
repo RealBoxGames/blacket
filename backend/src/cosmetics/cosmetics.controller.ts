@@ -12,7 +12,9 @@ import { Throttle, seconds } from "@nestjs/throttler";
 import { GetCurrentUser, Permissions } from "src/core/decorator";
 import {
     CosmeticsChangeAvatarDto,
+    CosmeticsChangeAvatarUrlDto,
     CosmeticsChangeBannerDto,
+    CosmeticsChangeBannerUrlDto,
     CosmeticsChangeColorTier1Dto,
     CosmeticsChangeColorTier2Dto,
     CosmeticsChangeFontDto,
@@ -43,11 +45,29 @@ export class CosmeticsController {
         return this.cosmeticsService.uploadAvatar(userId, dto);
     }
 
+    @Throttle({ global: { limit: 3, ttl: seconds(60) } })
+    @Patch("avatar/url")
+    @Permissions({ permissions: [PermissionTypeEnum.CUSTOM_AVATAR] })
+    @HttpCode(HttpStatus.NO_CONTENT)
+    changeAvatarUrl(@GetCurrentUser() userId: string,
+        @Body() dto: CosmeticsChangeAvatarUrlDto,) {
+        return this.cosmeticsService.changeAvatarUrl(userId, dto);
+    }
+
     @Patch("banner")
     @HttpCode(HttpStatus.NO_CONTENT)
     changeBanner(@GetCurrentUser() userId: string,
         @Body() dto: CosmeticsChangeBannerDto,) {
         return this.cosmeticsService.changeBanner(userId, dto);
+    }
+
+    @Throttle({ global: { limit: 3, ttl: seconds(60) } })
+    @Patch("banner/url")
+    @Permissions({ permissions: [PermissionTypeEnum.CUSTOM_BANNER] })
+    @HttpCode(HttpStatus.NO_CONTENT)
+    changeBannerUrl(@GetCurrentUser() userId: string,
+        @Body() dto: CosmeticsChangeBannerUrlDto,) {
+        return this.cosmeticsService.changeBannerUrl(userId, dto);
     }
 
     @Throttle({ global: { limit: 3, ttl: seconds(60) } })

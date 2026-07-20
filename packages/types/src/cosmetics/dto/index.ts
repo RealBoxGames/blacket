@@ -1,5 +1,7 @@
 export * from "./changeAvatar.dto";
+export * from "./changeAvatarUrl.dto";
 export * from "./changeBanner.dto";
+export * from "./changeBannerUrl.dto";
 export * from "./changeColorTier1.dto";
 export * from "./changeColorTier2.dto";
 export * from "./changeFont.dto";

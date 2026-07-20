@@ -4,7 +4,7 @@ import { useLoading } from "@stores/LoadingStore/index";
 import { useUser } from "@stores/UserStore/index";
 import { useData } from "@stores/DataStore/index";
 import { useModal } from "@stores/ModalStore/index";
-import { SearchBox, InventoryBlook, ItemContainer } from "@components/index";
+import { SearchBox, InventoryBlook, ItemContainer, Modal } from "@components/index";
 import { useChangeAvatar } from "@controllers/cosmetics/useChangeAvatar/index";
 import { useUpload } from "@controllers/users/useUpload/index";
 import styles from "../cosmeticsModal.module.scss";
@@ -19,9 +19,9 @@ export default function AvatarCategory() {
 
     const { setLoading } = useLoading();
     const { blooks } = useData();
-    const { closeModal } = useModal();
+    const { closeModal, createModal } = useModal();
 
-    const { changeAvatar, uploadAvatar } = useChangeAvatar();
+    const { changeAvatar, uploadAvatar, changeAvatarUrl } = useChangeAvatar();
     const { uploadFileSmall } = useUpload();
 
     const navigate = useNavigate();
@@ -62,6 +62,19 @@ export default function AvatarCategory() {
         input.click();
     };
 
+    const openUrlModal = () => {
+        if (!user.hasPermission(PermissionTypeEnum.CUSTOM_AVATAR)) return closeModal(), navigate("/store");
+
+        createModal(<Modal.ImageUrlModal
+            title="Set Avatar from URL"
+            onSubmit={(url) => {
+                setLoading(true);
+
+                return changeAvatarUrl({ url }).finally(() => setLoading(false));
+            }}
+        />);
+    };
+
     return (
         <>
             <SearchBox
@@ -76,9 +89,17 @@ export default function AvatarCategory() {
                 <div style={{ display: "flex", gap: 10, padding: 10 }}>
                     <div
                         className={styles.topBlook}
+                        style={{ position: "relative" }}
                         onClick={openFileSelect}
                     >
-                        <img src={user.customAvatar ? getUserAvatarPath(user) : window.constructCDNUrl("/content/icons/upload-avatar.png")} />
+                        <img src={(user.customAvatar || user.customAvatarUrl) ? getUserAvatarPath(user) : window.constructCDNUrl("/content/icons/upload-avatar.png")} />
+
+                        <i
+                            className="fas fa-link"
+                            title="Set from URL"
+                            style={{ position: "absolute", bottom: 2, right: 2, fontSize: 12, background: "rgba(0,0,0,0.6)", borderRadius: "50%", padding: 5 }}
+                            onClick={(e) => { e.stopPropagation(); openUrlModal(); }}
+                        />
                     </div>
 
                     <InventoryBlook

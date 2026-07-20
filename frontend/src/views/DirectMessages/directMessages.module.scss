@@ -128,3 +128,10 @@
     opacity: 0.7;
     text-align: center;
 }
+
+.dmMessagesLoading {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

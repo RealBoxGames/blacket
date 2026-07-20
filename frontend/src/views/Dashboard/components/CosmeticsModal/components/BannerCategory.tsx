@@ -4,7 +4,7 @@ import { useLoading } from "@stores/LoadingStore/index";
 import { useUser } from "@stores/UserStore/index";
 import { useData } from "@stores/DataStore/index";
 import { useModal } from "@stores/ModalStore/index";
-import { SearchBox } from "@components/index";
+import { SearchBox, Modal } from "@components/index";
 import { Banner } from ".";
 import { useChangeBanner } from "@controllers/cosmetics/useChangeBanner/index";
 import { useUpload } from "@controllers/users/useUpload/index";
@@ -20,9 +20,9 @@ export default function BannerCategory() {
 
     const { setLoading } = useLoading();
     const { banners } = useData();
-    const { closeModal } = useModal();
+    const { closeModal, createModal } = useModal();
 
-    const { changeBanner, uploadBanner } = useChangeBanner();
+    const { changeBanner, uploadBanner, changeBannerUrl } = useChangeBanner();
     const { uploadFileSmall } = useUpload();
 
     const navigate = useNavigate();
@@ -61,6 +61,18 @@ export default function BannerCategory() {
         input.click();
     };
 
+    const openUrlModal = () => {
+        if (!user.hasPermission(PermissionTypeEnum.CUSTOM_AVATAR)) return closeModal(), navigate("/store");
+
+        createModal(<Modal.ImageUrlModal
+            title="Set Banner from URL"
+            onSubmit={(url) => {
+                setLoading(true);
+
+                return changeBannerUrl({ url }).finally(() => setLoading(false));
+            }}
+        />);
+    };
 
     return (
         <>
@@ -73,9 +85,16 @@ export default function BannerCategory() {
             />
 
             <div className={styles.holder} data-column={true}>
-                <div className={styles.bannerContainer} onClick={openFileSelect}>
-                    <img className={styles.bannerImage} src={user.customBanner ? getUserBannerPath(user) : window.constructCDNUrl("/content/icons/upload-banner.png")} />
+                <div className={styles.bannerContainer} style={{ position: "relative" }} onClick={openFileSelect}>
+                    <img className={styles.bannerImage} src={(user.customBanner || user.customBannerUrl) ? getUserBannerPath(user) : window.constructCDNUrl("/content/icons/upload-banner.png")} />
                     <div className={styles.bannerName}>Upload Banner</div>
+
+                    <i
+                        className="fas fa-link"
+                        title="Set from URL"
+                        style={{ position: "absolute", bottom: 2, right: 2, fontSize: 12, background: "rgba(0,0,0,0.6)", borderRadius: "50%", padding: 5 }}
+                        onClick={(e) => { e.stopPropagation(); openUrlModal(); }}
+                    />
                 </div>
 
                 <Banner banner={banners.find((banner) => banner.id === 1)!} onClick={() => onSelect(1)} />

@@ -135,11 +135,6 @@ export default memo(function Sidebar() {
         [user]
     );
 
-    const pageScrollerHeight = useMemo(() =>
-        hasStaffPermission ? "60%" : undefined,
-        [hasStaffPermission]
-    );
-
     if (!user) return null;
 
     return (
@@ -149,7 +144,7 @@ export default memo(function Sidebar() {
                     {import.meta.env.VITE_INFORMATION_NAME}
                 </Link>
 
-                <div className={styles.pageScroller} style={{ height: pageScrollerHeight }}>
+                <div className={styles.pageScroller}>
                     {PAGES.left.map((page, index) => (
                         <PageItem
                             key={index}

@@ -3,15 +3,14 @@ import { Navigate, useNavigate, useParams, Link } from "react-router-dom";
 import { useUser } from "@stores/UserStore/index";
 import { useChat, useChatStore } from "@stores/ChatStore/index";
 import { useCachedUser } from "@stores/CachedUserStore/index";
-import { Blook, Username } from "@components/index";
+import { Blook, Username, Loader } from "@components/index";
 import { ChatMessagesContainer, ChatMessage, InputContainer } from "../Chat/components";
 import { useListDms } from "@controllers/chat/useListDms";
 import { useFindOrCreateDm } from "@controllers/chat/useFindOrCreateDm";
 import styles from "./directMessages.module.scss";
 
 import { PublicUser } from "@blacket/types";
-
-type DmEntry = { roomId: number; otherUser: { id: string; username: string; avatar?: { blookId: number; shiny: boolean } | null } | null };
+import { DmEntry } from "@stores/ChatStore/chatStore.d";
 
 export default function DirectMessages() {
     const { user, getUserAvatarPath } = useUser();
@@ -23,9 +22,8 @@ export default function DirectMessages() {
     const { cachedUsers, addCachedUser } = useCachedUser();
 
     const { messages } = useChat();
-    const { room, setRoom, unreadDmUserIds, clearDmUnread } = useChatStore();
+    const { room, setRoom, unreadDmUserIds, clearDmUnread, dms, setDms, loadingMessages } = useChatStore();
 
-    const [dms, setDms] = useState<DmEntry[]>([]);
     const [loadingDms, setLoadingDms] = useState<boolean>(true);
 
     if (!user) return <Navigate to="/login" />;
@@ -155,21 +153,24 @@ export default function DirectMessages() {
                             )}
                         </div>
 
-                        <ChatMessagesContainer aboveInput={false}>
-                            {memoizedMessages.map((message, index) => {
-                                const prevMessage = memoizedMessages[index + 1];
-                                const isNewUser = !prevMessage || prevMessage.authorId !== message.authorId;
+                        {loadingMessages
+                            ? <div className={styles.dmMessagesLoading}><Loader noModal /></div>
+                            : <ChatMessagesContainer aboveInput={false}>
+                                {memoizedMessages.map((message, index) => {
+                                    const prevMessage = memoizedMessages[index + 1];
+                                    const isNewUser = !prevMessage || prevMessage.authorId !== message.authorId;
 
-                                return <ChatMessage
-                                    key={message.id}
-                                    message={message}
-                                    newUser={isNewUser}
-                                    mentionsMe={false}
-                                    isSending={message.nonce !== undefined}
-                                    isEditing={false}
-                                />;
-                            })}
-                        </ChatMessagesContainer>
+                                    return <ChatMessage
+                                        key={message.id}
+                                        message={message}
+                                        newUser={isNewUser}
+                                        mentionsMe={false}
+                                        isSending={message.nonce !== undefined}
+                                        isEditing={false}
+                                    />;
+                                })}
+                            </ChatMessagesContainer>
+                        }
 
                         <InputContainer placeholder={`Message ${activeOtherUser?.username ?? activeDmEntry?.otherUser?.username ?? ""}`} maxLength={2048} />
                     </>

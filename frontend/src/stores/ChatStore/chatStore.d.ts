@@ -13,8 +13,14 @@ export interface TypingUser {
     startedTypingAt: number;
 }
 
+export interface DmEntry {
+    roomId: number;
+    otherUser: { id: string; username: string; avatar?: { blookId: number; shiny: boolean } | null } | null;
+}
+
 export interface ChatStore {
     messages: ClientMessage[];
+    loadingMessages: boolean;
     usersTyping: TypingUser[];
     replyingTo: ClientMessage | null;
     setReplyingTo: (message: ClientMessage | null) => void;
@@ -31,4 +37,7 @@ export interface ChatStore {
     unreadDmUserIds: string[];
     markDmUnread: (userId: string) => void;
     clearDmUnread: (userId: string) => void;
+    dms: DmEntry[];
+    setDms: (dms: DmEntry[]) => void;
+    touchDmRoom: (roomId: number) => void;
 }

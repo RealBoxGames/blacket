@@ -19,8 +19,8 @@ const ROLE_COLORS: RoleColor[] = [
 // Checked in this order so a user with multiple roles only shows the highest tag.
 // These colors are fixed and not user-configurable, unlike the username color itself.
 const GROUP_BADGES: { name: string; text: string; color?: string; className?: string }[] = [
-    { name: "Developer", text: "DEVELOPER", className: "rainbowBadge" },
-    { name: "Owner", text: "OWNER", className: "rainbowBadge" },
+    { name: "Developer", text: "DEVELOPER", color: "#7C3AED" },
+    { name: "Owner", text: "OWNER", color: "#F59E0B" },
     { name: "Admin", text: "ADMIN", color: "#E02424" },
     { name: "Moderator", text: "MOD", color: "#2563EB" },
     { name: "Helper", text: "HELPER", color: "#16A34A" },
