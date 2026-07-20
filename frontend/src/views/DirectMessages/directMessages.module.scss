@@ -8,9 +8,42 @@
 .dmList {
     width: 280px;
     flex-shrink: 0;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     border-right: 1px solid var(--secondary-color);
-    padding: 10px;
+}
+
+.dmListHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 15px;
+    border-bottom: 1px solid var(--secondary-color);
+    font-weight: bold;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.backToChatLink {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: normal;
+    opacity: 0.75;
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.dmListScroller {
+    overflow-y: auto;
+    padding: 8px;
+    flex-grow: 1;
 }
 
 .dmListItem {
@@ -20,6 +53,7 @@
     padding: 8px;
     border-radius: 8px;
     cursor: pointer;
+    transition: background-color 0.15s ease;
 
     &:hover {
         background-color: var(--primary-color);
@@ -34,6 +68,13 @@
     width: 36px;
     height: 36px;
     flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.dmUsername {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dmChat {
@@ -44,9 +85,33 @@
 }
 
 .dmChatHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 10px 15px;
     border-bottom: 1px solid var(--secondary-color);
     font-weight: bold;
+    flex-shrink: 0;
+}
+
+.dmBackIcon {
+    display: none;
+    cursor: pointer;
+    opacity: 0.75;
+
+    &:hover {
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        display: block;
+    }
+}
+
+.dmChatHeaderAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
 }
 
 .status {

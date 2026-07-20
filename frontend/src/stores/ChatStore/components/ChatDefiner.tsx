@@ -56,6 +56,9 @@ export default function ChatDefiner() {
     const addMention = async (message: ClientMessage) => {
         if (!user) return;
 
+        // DMs are handled separately by addDmNotification
+        if (message.roomId !== 0 && message.roomId !== 1) return;
+
         const l = locationRef.current.pathname.split("/")[1];
         if (l === "chat") return;
 
@@ -75,6 +78,28 @@ export default function ChatDefiner() {
                 }
             });
         }
+    };
+
+    // rooms 0 (global) and 1 (trading-plaza) are the only seeded public
+    // rooms; every other room id is a 1:1 DM room
+    const addDmNotification = async (message: ClientMessage) => {
+        if (!user) return;
+        if (message.authorId === user.id) return;
+        if (message.roomId === 0 || message.roomId === 1) return;
+
+        const cachedUser = await addCachedUser(message.authorId);
+        if (!cachedUser) return;
+
+        // already viewing this exact DM, no need to toast
+        if (locationRef.current.pathname === `/direct-messages/${message.authorId}`) return;
+
+        createToast({
+            header: cachedUser.username,
+            body: await parseContent(message.content),
+            icon: getUserAvatarPath(cachedUser),
+            sound: "mention",
+            onClick: () => navigate(`/direct-messages/${message.authorId}`)
+        });
     };
 
     // const onChatMessageCreate = (data: ClientMessage) => {
@@ -100,6 +125,7 @@ export default function ChatDefiner() {
         if (!user) return;
 
         addMention(data);
+        addDmNotification(data);
 
         // mentions/toasts should fire regardless of which room is open, but
         // don't let a message from a different room end up in this one's list

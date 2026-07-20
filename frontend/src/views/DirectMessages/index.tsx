@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, Link } from "react-router-dom";
 import { useUser } from "@stores/UserStore/index";
 import { useChat, useChatStore } from "@stores/ChatStore/index";
+import { useCachedUser } from "@stores/CachedUserStore/index";
 import { Blook, Username } from "@components/index";
 import { ChatMessagesContainer, ChatMessage, InputContainer } from "../Chat/components";
 import { useListDms } from "@controllers/chat/useListDms";
 import { useFindOrCreateDm } from "@controllers/chat/useFindOrCreateDm";
 import styles from "./directMessages.module.scss";
+
+import { PublicUser } from "@blacket/types";
 
 type DmEntry = { roomId: number; otherUser: { id: string; username: string; avatar?: { blookId: number; shiny: boolean } | null } | null };
 
@@ -17,17 +20,24 @@ export default function DirectMessages() {
 
     const { listDms } = useListDms();
     const { findOrCreateDm } = useFindOrCreateDm();
+    const { cachedUsers, addCachedUser } = useCachedUser();
 
     const { messages } = useChat();
     const { room, setRoom } = useChatStore();
 
     const [dms, setDms] = useState<DmEntry[]>([]);
-    const [activeOtherUser, setActiveOtherUser] = useState<DmEntry["otherUser"]>(null);
+    const [loadingDms, setLoadingDms] = useState<boolean>(true);
 
     if (!user) return <Navigate to="/login" />;
 
     const refreshDms = () => {
-        listDms().then((res) => setDms(res.data)).catch(() => setDms([]));
+        listDms()
+            .then((res) => {
+                setDms(res.data);
+                res.data.forEach((dm: DmEntry) => dm.otherUser && addCachedUser(dm.otherUser.id));
+            })
+            .catch(() => setDms([]))
+            .finally(() => setLoadingDms(false));
     };
 
     useEffect(() => {
@@ -37,47 +47,101 @@ export default function DirectMessages() {
     useEffect(() => {
         if (!userId) return;
 
+        addCachedUser(userId);
+
         findOrCreateDm(userId)
             .then((res) => {
-                setRoom(res.roomId);
+                setRoom(res.data.roomId);
                 refreshDms();
             })
-            .catch(() => { });
+            .catch(() => navigate("/direct-messages"));
     }, [userId]);
 
-    useEffect(() => {
-        const entry = dms.find((d) => d.roomId === room);
-        if (entry) setActiveOtherUser(entry.otherUser);
-    }, [room, dms]);
+    // resolves a DM participant into a full displayable user, preferring the
+    // real username we already have from listDms over whatever's cached
+    // (addCachedUser seeds a placeholder using the logged-in user's own
+    // color/font until the real fetch resolves, so this avoids a flash of
+    // the wrong name)
+    const resolveDisplayUser = (id: string, knownUsername?: string): PublicUser | null => {
+        const cached = cachedUsers.find((u) => u.id === id);
+        if (!cached) return null;
+
+        return knownUsername ? { ...cached, username: knownUsername } : cached;
+    };
+
+    const activeDmEntry = dms.find((d) => d.otherUser?.id === userId);
+    const activeOtherUser = userId ? resolveDisplayUser(userId, activeDmEntry?.otherUser?.username) : null;
 
     const memoizedMessages = useMemo(() => messages, [messages.length, messages.map((m) => m.id).join(",")]);
 
     return (
         <div className={styles.container}>
             <div className={styles.dmList}>
-                {dms.length === 0 && <div className={styles.status}>No conversations yet. Visit someone's profile and click Direct Message to start one.</div>}
+                <div className={styles.dmListHeader}>
+                    <span>Direct Messages</span>
 
-                {dms.map((dm) => dm.otherUser && (
-                    <div
-                        key={dm.roomId}
-                        className={styles.dmListItem}
-                        data-active={dm.roomId === room}
-                        onClick={() => navigate(`/direct-messages/${dm.otherUser!.id}`)}
-                    >
-                        <Blook src={getUserAvatarPath(dm.otherUser as any)} shiny={dm.otherUser.avatar?.shiny} className={styles.dmAvatar} />
-                        <Username user={dm.otherUser as any} />
-                    </div>
-                ))}
+                    <Link to="/chat" className={styles.backToChatLink}>
+                        <i className="fas fa-comments" /> Chat
+                    </Link>
+                </div>
+
+                <div className={styles.dmListScroller}>
+                    {!loadingDms && dms.length === 0 && (
+                        <div className={styles.status}>No conversations yet. Visit someone's profile and click Direct Message to start one.</div>
+                    )}
+
+                    {dms.map((dm) => {
+                        if (!dm.otherUser) return null;
+
+                        const displayUser = resolveDisplayUser(dm.otherUser.id, dm.otherUser.username);
+
+                        return (
+                            <div
+                                key={dm.roomId}
+                                className={styles.dmListItem}
+                                data-active={dm.roomId === room && dm.otherUser.id === userId}
+                                onClick={() => navigate(`/direct-messages/${dm.otherUser!.id}`)}
+                            >
+                                <Blook
+                                    src={getUserAvatarPath((displayUser ?? dm.otherUser) as any)}
+                                    shiny={dm.otherUser.avatar?.shiny}
+                                    className={styles.dmAvatar}
+                                />
+
+                                {displayUser
+                                    ? <Username user={displayUser} className={styles.dmUsername} />
+                                    : <span className={styles.dmUsername}>{dm.otherUser.username}</span>
+                                }
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className={styles.dmChat}>
-                {!userId && <div className={styles.status}>Select a conversation to start messaging.</div>}
+                {!userId && <div className={styles.status}>Select a conversation to start messaging, or visit someone's profile to start a new one.</div>}
 
                 {userId && (
                     <>
-                        {activeOtherUser && <div className={styles.dmChatHeader}>
-                            <Username user={activeOtherUser as any} />
-                        </div>}
+                        <div className={styles.dmChatHeader}>
+                            <i
+                                className={`fas fa-arrow-left ${styles.dmBackIcon}`}
+                                onClick={() => navigate("/direct-messages")}
+                            />
+
+                            {activeOtherUser ? (
+                                <>
+                                    <Blook
+                                        src={getUserAvatarPath(activeOtherUser)}
+                                        shiny={activeOtherUser.avatar?.shiny}
+                                        className={styles.dmChatHeaderAvatar}
+                                    />
+                                    <Username user={activeOtherUser} />
+                                </>
+                            ) : (
+                                <span className={styles.dmUsername}>{activeDmEntry?.otherUser?.username ?? "Loading..."}</span>
+                            )}
+                        </div>
 
                         <ChatMessagesContainer aboveInput={false}>
                             {memoizedMessages.map((message, index) => {
@@ -95,7 +159,7 @@ export default function DirectMessages() {
                             })}
                         </ChatMessagesContainer>
 
-                        <InputContainer placeholder={`Message ${activeOtherUser?.username ?? ""}`} maxLength={2048} />
+                        <InputContainer placeholder={`Message ${activeOtherUser?.username ?? activeDmEntry?.otherUser?.username ?? ""}`} maxLength={2048} />
                     </>
                 )}
             </div>

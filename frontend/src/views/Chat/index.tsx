@@ -19,7 +19,7 @@ export default memo(function Chat() {
     const { user } = useUser();
     if (!user) return <Navigate to="/login" />;
 
-    const { messages, replyingTo, setReplyingTo, editing, setEditing, resetMentions } = useChat();
+    const { messages, replyingTo, setReplyingTo, editing, setEditing, resetMentions, setRoom } = useChat();
     const { openContextMenu } = useContextMenu();
     const { createToast } = useToast();
     const { addCachedUser } = useCachedUser();
@@ -33,6 +33,10 @@ export default memo(function Chat() {
         resetMentions();
 
         setEditing(null);
+
+        // a visit to a DM leaves ChatStore.room pointed at the DM's room id;
+        // reset it back to global whenever this page is opened
+        setRoom(0);
     }, []);
 
     const memoizedMessages = useMemo(() => messages, [messages.length, messages.map((m) => m.id).join(",")]);
