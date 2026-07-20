@@ -46,6 +46,7 @@ export default function Dashboard() {
     const { claimDaily } = useClaimDaily();
 
     const [searchParams] = useSearchParams();
+    const [claimingDaily, setClaimingDaily] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
@@ -195,9 +196,18 @@ export default function Dashboard() {
                         </StatButton>}
 
                         {viewingUser.id === user.id && new Date(user.lastClaimed) < claimableDate && <StatButton icon="fas fa-star" onClick={() => {
+                            // guard against a duplicate click firing a second request before
+                            // the button re-renders itself away - without this, the second
+                            // request would 403 with "already claimed" even though the first
+                            // one succeeded, making it look like the claim failed
+                            if (claimingDaily) return;
+
+                            setClaimingDaily(true);
+
                             claimDaily()
                                 .then((res) => alert(`You claimed ${res.data.tokens.toLocaleString()} tokens!`))
-                                .catch((res) => alert(res.data?.message ?? "Failed to claim daily reward."));
+                                .catch((res) => alert(res.data?.message ?? "Failed to claim daily reward."))
+                                .finally(() => setClaimingDaily(false));
                         }}>Daily Rewards</StatButton>}
 
                         <StatButton icon="fas fa-cart-shopping" onClick={() => {
