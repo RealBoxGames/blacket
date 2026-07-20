@@ -16,6 +16,14 @@ const ROLE_COLORS: RoleColor[] = [
     }
 ];
 
+// Checked in this order so an Owner who also holds MVP/VIP only shows the highest tag.
+// These colors are fixed and not user-configurable, unlike the username color itself.
+const GROUP_BADGES: { name: string; text: string; color?: string; className?: string }[] = [
+    { name: "Owner", text: "OWNER", className: "rainbowBadge" },
+    { name: "MVP", text: "MVP", color: "linear-gradient(45deg, #FFD700, #FFA500)" },
+    { name: "VIP", text: "VIP", color: "linear-gradient(45deg, #8A2BE2, #4B0082)" }
+];
+
 export default function Username({ user, className, style = {}, ...props }: UsernameProps) {
     const { fontIdToName } = useData();
 
@@ -37,6 +45,8 @@ export default function Username({ user, className, style = {}, ...props }: User
         };
     }
 
+    const badges: { name: string }[] = (user as any).badges ?? [];
+    const groupBadge = GROUP_BADGES.find((badge) => badges.some((b) => b.name === badge.name));
     const role = ROLE_COLORS.find((role) => (user as any)[role.key]);
 
     return <span
@@ -68,6 +78,15 @@ export default function Username({ user, className, style = {}, ...props }: User
         >
             <span>
                 {role.text}
+            </span>
+        </span>}
+
+        {!role && groupBadge && <span
+            className={`${styles.badge} ${groupBadge.className ? styles[groupBadge.className] : ""}`}
+            style={groupBadge.color ? { background: groupBadge.color } : undefined}
+        >
+            <span>
+                {groupBadge.text}
             </span>
         </span>}
     </span >;

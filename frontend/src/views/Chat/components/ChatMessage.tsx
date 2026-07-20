@@ -141,16 +141,6 @@ export default memo(function ChatMessage({ message, newUser, mentionsMe, isSendi
                             <div className={styles.messageBigTimestamp}>
                                 {timestamps(message.createdAt.toString())}
                             </div>
-
-                            {
-                                // TODO: badges on messages
-
-                                author.badges.length > 0 && <div className={styles.messageBadgeContainer}>
-                                    {
-                                        // badges.map((badge, index) => <img key={index} src={badge} className={styles.messageBadge} />)
-                                    }
-                                </div>
-                            }
                         </div>}
 
                         <div style={{

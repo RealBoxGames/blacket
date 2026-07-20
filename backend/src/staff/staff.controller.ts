@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { StaffService } from "./staff.service";
 import { GetCurrentUser, Permissions } from "src/core/decorator";
@@ -8,6 +8,7 @@ import {
     StaffAdminEditUserGroupsDto,
     StaffAdminGiveTokensDto,
     StaffAdminGiveUserBlookDto,
+    StaffAdminPunishUserDto,
     StaffAdminSetUserAvatarDto
 } from "@blacket/types";
 
@@ -61,5 +62,20 @@ export class StaffController {
     @Post("give")
     async giveTokens(@GetCurrentUser() requesterId: string, @Body() dto: StaffAdminGiveTokensDto) {
         return await this.staffService.giveTokens(requesterId, dto);
+    }
+
+    @Post("users/:id/punishments")
+    async punishUser(@GetCurrentUser() requesterId: string, @Param("id") id: string, @Body() dto: StaffAdminPunishUserDto) {
+        return await this.staffService.punishUser(requesterId, id, dto);
+    }
+
+    @Get("users/:id/punishments")
+    async listPunishments(@GetCurrentUser() requesterId: string, @Param("id") id: string) {
+        return await this.staffService.listPunishments(requesterId, id);
+    }
+
+    @Delete("punishments/:punishmentId")
+    async revokePunishment(@GetCurrentUser() requesterId: string, @Param("punishmentId") punishmentId: string) {
+        return await this.staffService.revokePunishment(requesterId, Number(punishmentId));
     }
 }

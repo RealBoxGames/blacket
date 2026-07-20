@@ -1,3 +1,19 @@
+.rainbowBadge {
+    background: linear-gradient(90deg, red, orange, yellow, #0f0, #0ff, blue, #f0f, red);
+    background-size: 200%;
+    animation: rainbowBadge 7s linear infinite;
+
+    @keyframes rainbowBadge {
+        0% {
+            background-position: 200%;
+        }
+
+        100% {
+            background-position: -200%;
+        }
+    }
+}
+
 .badge {
     display: inline-flex;
     flex: 0 0 auto;

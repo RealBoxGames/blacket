@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.service";
+import { PermissionsService } from "src/permissions/permissions.service";
 import { SUPER_ADMIN_USERNAME } from "src/core/constants";
 import {
     Forbidden,
@@ -9,10 +10,14 @@ import {
     StaffAdminEditUserGroupsDto,
     StaffAdminGiveTokensDto,
     StaffAdminGiveUserBlookDto,
+    StaffAdminPunishUserDto,
     StaffAdminSetUserAvatarDto,
+    StaffPunishmentEntity,
     StaffUserEntity
 } from "@blacket/types";
-import { BlookObtainMethod } from "@blacket/core";
+import { BlookObtainMethod, PermissionType, PunishmentType } from "@blacket/core";
+
+const PERMANENT_DURATION_MS = 1000 * 60 * 60 * 24 * 365 * 100;
 
 const USER_SELECT = {
     id: true,
@@ -28,7 +33,8 @@ const USER_SELECT = {
 @Injectable()
 export class StaffService {
     constructor(private readonly prismaService: PrismaService,
-        private readonly redisService: RedisService,) {}
+        private readonly redisService: RedisService,
+        private readonly permissionsService: PermissionsService,) {}
 
     private toEntity(user: any): StaffUserEntity {
         return new StaffUserEntity({
@@ -51,6 +57,11 @@ export class StaffService {
         });
 
         if (!user || user.username !== SUPER_ADMIN_USERNAME) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
+    }
+
+    private async assertHasPermission(userId: string, permission: PermissionType): Promise<void> {
+        const permissions = await this.permissionsService.getUserPermissions(userId);
+        if (!this.permissionsService.hasPermission(permissions, permission)) throw new ForbiddenException(Forbidden.DEFAULT);
     }
 
     async searchUsers(search?: string): Promise<StaffUserEntity[]> {
@@ -195,5 +206,53 @@ export class StaffService {
         });
 
         return { username: user.username, tokens: dto.tokens };
+    }
+
+    async punishUser(requesterId: string, id: string, dto: StaffAdminPunishUserDto): Promise<StaffPunishmentEntity> {
+        const requiredPermission = dto.type === "BAN" ? PermissionType.BAN_USERS : PermissionType.MUTE_USERS;
+        await this.assertHasPermission(requesterId, requiredPermission);
+
+        const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
+        if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
+
+        const expiresAt = dto.durationMinutes
+            ? new Date(Date.now() + dto.durationMinutes * 60 * 1000)
+            : new Date(Date.now() + PERMANENT_DURATION_MS);
+
+        const punishment = await this.prismaService.punishment.create({
+            data: {
+                userId: id,
+                staffId: requesterId,
+                type: dto.type === "BAN" ? PunishmentType.BAN : PunishmentType.MUTE,
+                reason: dto.reason,
+                expiresAt
+            }
+        });
+
+        return new StaffPunishmentEntity(punishment);
+    }
+
+    async listPunishments(requesterId: string, id: string): Promise<StaffPunishmentEntity[]> {
+        const permissions = await this.permissionsService.getUserPermissions(requesterId);
+        const canView = this.permissionsService.hasPermission(permissions, PermissionType.BAN_USERS) ||
+            this.permissionsService.hasPermission(permissions, PermissionType.MUTE_USERS);
+        if (!canView) throw new ForbiddenException(Forbidden.DEFAULT);
+
+        const punishments = await this.prismaService.punishment.findMany({
+            where: { userId: id },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return punishments.map((punishment) => new StaffPunishmentEntity(punishment));
+    }
+
+    async revokePunishment(requesterId: string, punishmentId: number): Promise<void> {
+        const punishment = await this.prismaService.punishment.findUnique({ where: { id: punishmentId } });
+        if (!punishment) throw new NotFoundException(NotFound.DEFAULT);
+
+        const requiredPermission = punishment.type === PunishmentType.BAN ? PermissionType.BAN_USERS : PermissionType.MUTE_USERS;
+        await this.assertHasPermission(requesterId, requiredPermission);
+
+        await this.prismaService.punishment.delete({ where: { id: punishmentId } });
     }
 }
