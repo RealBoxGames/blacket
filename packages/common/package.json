@@ -15,6 +15,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@blacket/types": "file:../types",
         "@types/node": "^22.10.6"
     },
     "devDependencies": {
