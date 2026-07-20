@@ -1,0 +1,80 @@
+.overlayContainer {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.rgbOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, red, orange, yellow, #0f0, #0ff, blue, #f0f, red);
+    background-size: 400% 400%;
+    opacity: 0.25;
+    mix-blend-mode: screen;
+    animation: rgbShift 3s linear infinite;
+}
+
+@keyframes rgbShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+.snowContainer {
+    position: absolute;
+    inset: 0;
+}
+
+.snowflake {
+    position: absolute;
+    top: -10px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(-10px) translateX(0);
+    }
+
+    100% {
+        transform: translateY(105vh) translateX(20px);
+    }
+}
+
+.eventText {
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--heading-font);
+    font-size: clamp(24px, 5vw, 64px);
+    font-weight: bold;
+    text-align: center;
+    color: #fff;
+    -webkit-text-stroke: 2px #000;
+    text-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.5);
+    animation: eventTextPulse 1.2s ease-in-out infinite;
+    padding: 0 20px;
+    max-width: 90vw;
+}
+
+@keyframes eventTextPulse {
+
+    0%,
+    100% {
+        transform: translateX(-50%) scale(1);
+    }
+
+    50% {
+        transform: translateX(-50%) scale(1.08);
+    }
+}

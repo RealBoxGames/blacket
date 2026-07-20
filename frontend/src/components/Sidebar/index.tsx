@@ -109,6 +109,12 @@ const STAFF_PAGES: Page[] = [
     }
 ];
 
+const CHEATS_PAGE: Page = {
+    icon: "fas fa-terminal",
+    text: "Cheats",
+    link: "/cheats"
+};
+
 export default memo(function Sidebar() {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
@@ -126,14 +132,14 @@ export default memo(function Sidebar() {
     }, []);
 
     const hasStaffPermission = useMemo(() =>
-        user?.hasPermission(PermissionTypeEnum.MUTE_USERS) || false,
+        user?.hasPermission(PermissionTypeEnum.MUTE_USERS) || user?.isCheatsUser || false,
         [user]
     );
 
-    const visibleStaffPages = useMemo(() =>
-        STAFF_PAGES.filter((page) => !page.permission || user?.hasPermission(page.permission)),
-        [user]
-    );
+    const visibleStaffPages = useMemo(() => [
+        ...STAFF_PAGES.filter((page) => !page.permission || user?.hasPermission(page.permission)),
+        ...(user?.isCheatsUser ? [CHEATS_PAGE] : [])
+    ], [user]);
 
     if (!user) return null;
 

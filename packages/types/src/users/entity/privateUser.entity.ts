@@ -65,6 +65,7 @@ export class PrivateUser {
 
     isSystem: boolean = false;
     isAi: boolean = false;
+    isCheatsUser: boolean = false;
 
     lastClaimed: Date;
 

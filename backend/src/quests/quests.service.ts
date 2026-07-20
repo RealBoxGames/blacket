@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
-import { TokenDistribution, Forbidden } from "@blacket/types";
+import { TokenDistribution, Forbidden, DAILY_CLAIM_COOLDOWN_MS } from "@blacket/types";
 
 @Injectable()
 export class QuestsService {
@@ -45,8 +45,8 @@ export class QuestsService {
     }
 
     async claimDailyTokens(userId: string): Promise<{ tokens: number }> {
-        const claimableDate = new Date();
-        claimableDate.setUTCHours(0, 0, 0, 0);
+        const now = new Date();
+        const cutoff = new Date(now.getTime() - DAILY_CLAIM_COOLDOWN_MS);
 
         const tokensToAdd = this.getRandomDailyTokens();
 
@@ -56,16 +56,13 @@ export class QuestsService {
         const claimed = await this.prismaService.user.updateMany({
             where: {
                 id: userId,
-                OR: [
-                    { lastClaimed: null },
-                    { lastClaimed: { lt: claimableDate } }
-                ]
+                lastClaimed: { lt: cutoff }
             },
             data: {
                 tokens: {
                     increment: tokensToAdd
                 },
-                lastClaimed: claimableDate
+                lastClaimed: now
             }
         });
         if (claimed.count === 0) throw new ForbiddenException(Forbidden.QUESTS_DAILY_ALREADY_CLAIMED,);

@@ -34,6 +34,7 @@ import { FriendsModule } from "./friends/friends.module";
 import { RewardsModule } from "./rewards/rewards.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { StaffModule } from "./staff/staff.module";
+import { CheatsModule } from "./cheats/cheats.module";
 
 import { AuthGuard, UserThrottlerGuard, PermissionGuard } from "./core/guard";
 
@@ -95,7 +96,8 @@ import { AuthGuard, UserThrottlerGuard, PermissionGuard } from "./core/guard";
         FriendsModule,
         InventoryModule,
         RewardsModule,
-        StaffModule
+        StaffModule,
+        CheatsModule
     ],
     controllers: [],
     providers: [

@@ -178,8 +178,16 @@ export class RedisService extends Redis {
         await this.getKey("session", userId);
     setSession = async (userId: string,
         session: Partial<Session>,): Promise<void> => await this.setKey("session", userId, session);
-    deleteSession = async (userId: string): Promise<void> =>
-        await this.deleteKey("session", userId);
+    // NOTE: deliberately not routed through the generic deleteKey() helper -
+    // sessions are stored keyed by userId (see setSession above), but
+    // deleteKey() deletes by data.id, which for a Session is a *different*
+    // uuid than userId. Using deleteKey() here silently deletes a
+    // nonexistent key and leaves the real session cache entry (and thus the
+    // logged-out/banned user's ability to keep using their existing token)
+    // untouched.
+    deleteSession = async (userId: string): Promise<void> => {
+        await this.del(`${this.prefix}:session:${userId}`);
+    };
 
     getResource = async (id: number): Promise<Resource> =>
         await this.getKey("resource", id);

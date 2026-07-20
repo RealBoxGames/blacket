@@ -20,7 +20,7 @@ import { Auction, Blook, ImageOrVideo, Username, ItemContainer, Title, Button, M
 import { LevelContainer, LookupUserModal, SectionHeader, StatContainer, CosmeticsModal, StatButton, FriendsContainer, MobileFriendsModal } from "./components";
 import styles from "./dashboard.module.scss";
 
-import { AuctionsAuctionEntity, PrivateUser, PublicUser } from "@blacket/types";
+import { AuctionsAuctionEntity, PrivateUser, PublicUser, DAILY_CLAIM_COOLDOWN_MS } from "@blacket/types";
 import { CosmeticsModalCategory } from "./dashboard.d";
 
 export default function Dashboard() {
@@ -47,6 +47,14 @@ export default function Dashboard() {
 
     const [searchParams] = useSearchParams();
     const [claimingDaily, setClaimingDaily] = useState<boolean>(false);
+
+    // ticks every second so the claim button/countdown update live without
+    // needing a page reload
+    const [now, setNow] = useState<number>(Date.now());
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const navigate = useNavigate();
 
@@ -128,8 +136,18 @@ export default function Dashboard() {
         createModal(<Modal.WelcomeModal />);
     }, []);
 
-    const claimableDate = new Date();
-    claimableDate.setUTCHours(0, 0, 0, 0);
+    const nextClaimAt = new Date(user.lastClaimed).getTime() + DAILY_CLAIM_COOLDOWN_MS;
+    const canClaimDaily = now >= nextClaimAt;
+    const claimCountdown = (() => {
+        const remainingMs = nextClaimAt - now;
+        if (remainingMs <= 0) return "";
+
+        const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+        const minutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+        const seconds = Math.floor((remainingMs % (60 * 1000)) / 1000);
+
+        return `${hours}h ${minutes}m ${seconds}s`;
+    })();
 
     const isMobile = window.innerWidth <= 768;
 
@@ -195,20 +213,26 @@ export default function Dashboard() {
                             Friends
                         </StatButton>}
 
-                        {viewingUser.id === user.id && new Date(user.lastClaimed) < claimableDate && <StatButton icon="fas fa-star" onClick={() => {
-                            // guard against a duplicate click firing a second request before
-                            // the button re-renders itself away - without this, the second
-                            // request would 403 with "already claimed" even though the first
-                            // one succeeded, making it look like the claim failed
-                            if (claimingDaily) return;
+                        {viewingUser.id === user.id && (canClaimDaily ? (
+                            <StatButton icon="fas fa-star" onClick={() => {
+                                // guard against a duplicate click firing a second request before
+                                // the button re-renders itself away - without this, the second
+                                // request would 403 with "already claimed" even though the first
+                                // one succeeded, making it look like the claim failed
+                                if (claimingDaily) return;
 
-                            setClaimingDaily(true);
+                                setClaimingDaily(true);
 
-                            claimDaily()
-                                .then((res) => alert(`You claimed ${res.data.tokens.toLocaleString()} tokens!`))
-                                .catch((res) => alert(res.data?.message ?? "Failed to claim daily reward."))
-                                .finally(() => setClaimingDaily(false));
-                        }}>Daily Rewards</StatButton>}
+                                claimDaily()
+                                    .then((res) => alert(`You claimed ${res.data.tokens.toLocaleString()} tokens!`))
+                                    .catch((res) => alert(res.data?.message ?? "Failed to claim daily reward."))
+                                    .finally(() => setClaimingDaily(false));
+                            }}>Daily Rewards</StatButton>
+                        ) : (
+                            <StatButton icon="fas fa-clock" onClick={() => { }} style={{ opacity: 0.6, cursor: "default" }}>
+                                {claimCountdown}
+                            </StatButton>
+                        ))}
 
                         <StatButton icon="fas fa-cart-shopping" onClick={() => {
                             navigate("/store");

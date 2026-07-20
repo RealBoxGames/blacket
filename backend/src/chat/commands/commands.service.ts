@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ChatService } from "../chat.service";
-import { OwnerTierService } from "src/core/ownerTier.service";
-import { ChatCommandEntity, NotFound } from "@blacket/types";
+import { CHEATS_USER_ID } from "src/core/constants";
+import { ChatCommandEntity, Forbidden, NotFound } from "@blacket/types";
 import { BlookObtainMethod } from "@blacket/core";
 
 const BOT_USERNAME = "Blacket";
@@ -11,7 +11,7 @@ interface CommandDefinition {
     name: string;
     description: string;
     usage: string;
-    ownerTierOnly?: boolean;
+    cheatsUserOnly?: boolean;
     execute: (requesterId: string, args: string) => Promise<string>;
 }
 
@@ -20,8 +20,7 @@ export class CommandsService {
     private botUserId: string | null = null;
 
     constructor(private readonly prismaService: PrismaService,
-        private readonly chatService: ChatService,
-        private readonly ownerTierService: OwnerTierService,) {}
+        private readonly chatService: ChatService,) {}
 
     private readonly commands: CommandDefinition[] = [
         {
@@ -34,27 +33,18 @@ export class CommandsService {
             name: "give",
             description: "Give a user tokens or a blook.",
             usage: "/give <username> tokens <amount>  or  /give <username> blook <blook name> [shiny]",
-            ownerTierOnly: true,
+            // give is restricted to one specific account, not the whole
+            // Owner/Developer tier - see CHEATS_USER_ID
+            cheatsUserOnly: true,
             execute: async (_requesterId, args) => this.executeGive(args)
         }
     ];
 
     async listCommandsForUser(userId: string): Promise<ChatCommandEntity[]> {
-        const isOwnerTier = await this.isOwnerTier(userId);
-
         return this.commands
-            .filter((command) => !command.ownerTierOnly || isOwnerTier)
+            .filter((command) => !command.cheatsUserOnly || userId === CHEATS_USER_ID)
             .map((command) => new ChatCommandEntity({ name: command.name, description: command.description, usage: command.usage }))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    private async isOwnerTier(userId: string): Promise<boolean> {
-        try {
-            await this.ownerTierService.assert(userId);
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     private async getBotUserId(): Promise<string> {
@@ -75,7 +65,7 @@ export class CommandsService {
         const command = this.commands.find((c) => c.name === commandName.toLowerCase());
         if (!command) throw new NotFoundException(NotFound.DEFAULT);
 
-        if (command.ownerTierOnly) await this.ownerTierService.assert(requesterId);
+        if (command.cheatsUserOnly && requesterId !== CHEATS_USER_ID) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
 
         const resultText = await command.execute(requesterId, args ?? "");
 

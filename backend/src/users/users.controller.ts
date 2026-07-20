@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { GetCurrentUser } from "src/core/decorator/getCurrentUser.decorator";
+import { CHEATS_USER_ID } from "src/core/constants";
 
 import { ApiTags } from "@nestjs/swagger";
 import { NotFound, PrivateUser, PublicUser } from "@blacket/types";
@@ -41,7 +42,7 @@ export class UsersController {
         });
 
         if (!userData) throw new NotFoundException(NotFound.UNKNOWN_USER);
-        else return new PrivateUser(userData);
+        else return new PrivateUser({ ...userData, isCheatsUser: userData.id === CHEATS_USER_ID });
     }
 
     @Throttle({ global: { limit: 25, ttl: minutes(10) } })

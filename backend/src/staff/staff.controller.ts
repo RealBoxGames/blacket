@@ -38,20 +38,20 @@ export class StaffController {
 
     @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
     @Patch("users/:id/currency")
-    async editCurrency(@Param("id") id: string, @Body() dto: StaffAdminEditUserCurrencyDto) {
-        return await this.staffService.editCurrency(id, dto);
+    async editCurrency(@GetCurrentUser() requesterId: string, @Param("id") id: string, @Body() dto: StaffAdminEditUserCurrencyDto) {
+        return await this.staffService.editCurrency(requesterId, id, dto);
     }
 
     @Permissions({ permissions: [PermissionTypeEnum.MANAGE_USER_BLOOKS] })
     @Post("users/:id/blooks")
-    async giveBlook(@Param("id") id: string, @Body() dto: StaffAdminGiveUserBlookDto) {
-        return await this.staffService.giveBlook(id, dto);
+    async giveBlook(@GetCurrentUser() requesterId: string, @Param("id") id: string, @Body() dto: StaffAdminGiveUserBlookDto) {
+        return await this.staffService.giveBlook(requesterId, id, dto);
     }
 
     @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
     @Patch("users/:id/avatar")
-    async setAvatar(@Param("id") id: string, @Body() dto: StaffAdminSetUserAvatarDto) {
-        return await this.staffService.setAvatar(id, dto);
+    async setAvatar(@GetCurrentUser() requesterId: string, @Param("id") id: string, @Body() dto: StaffAdminSetUserAvatarDto) {
+        return await this.staffService.setAvatar(requesterId, id, dto);
     }
 
     @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })

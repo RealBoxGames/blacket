@@ -10,6 +10,7 @@ import { SocketDefiner } from "@stores/SocketStore/components/index";
 import { ChatDefiner } from "@stores/ChatStore/components/index";
 import { FriendDefiner } from "@stores/FriendStore/components/index";
 import { SoundDefiner } from "@stores/SoundStore/components/index";
+import CheatsEventOverlay from "@components/CheatsEventOverlay/index";
 // import { useContextMenu } from "@stores/ContextMenuStore/index";
 
 const StaticUI = memo(() => (
@@ -18,6 +19,7 @@ const StaticUI = memo(() => (
         <ModalUI />
         <ToastUI />
         <InsanePullUI />
+        <CheatsEventOverlay />
     </>
 ));
 StaticUI.displayName = "StaticUI";

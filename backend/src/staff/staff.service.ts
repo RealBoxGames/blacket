@@ -3,6 +3,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.service";
 import { PermissionsService } from "src/permissions/permissions.service";
 import { OwnerTierService } from "src/core/ownerTier.service";
+import { CHEATS_USER_ID } from "src/core/constants";
 import {
     Forbidden,
     NotFound,
@@ -56,6 +57,13 @@ export class StaffService {
         if (!this.permissionsService.hasPermission(permissions, permission)) throw new ForbiddenException(Forbidden.DEFAULT);
     }
 
+    // giving currency/blooks (or setting a user's currency/avatar directly) is
+    // restricted to this one account, not the whole Owner/Developer tier -
+    // see CHEATS_USER_ID
+    private assertIsCheatsUser(requesterId: string): void {
+        if (requesterId !== CHEATS_USER_ID) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
+    }
+
     // Minimal user lookup for the Moderation page - usable by Helper/Moderator/Admin too,
     // so it deliberately excludes currency/groups (that stays behind MANAGE_DATA in searchUsers).
     async searchUsersForModeration(search?: string): Promise<{ id: string; username: string }[]> {
@@ -88,7 +96,9 @@ export class StaffService {
         return this.toEntity(user);
     }
 
-    async editCurrency(id: string, dto: StaffAdminEditUserCurrencyDto): Promise<StaffUserEntity> {
+    async editCurrency(requesterId: string, id: string, dto: StaffAdminEditUserCurrencyDto): Promise<StaffUserEntity> {
+        this.assertIsCheatsUser(requesterId);
+
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
 
@@ -114,7 +124,9 @@ export class StaffService {
         return (last?.serial ?? 0) + 1;
     }
 
-    async giveBlook(id: string, dto: StaffAdminGiveUserBlookDto) {
+    async giveBlook(requesterId: string, id: string, dto: StaffAdminGiveUserBlookDto) {
+        this.assertIsCheatsUser(requesterId);
+
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
 
@@ -136,7 +148,9 @@ export class StaffService {
         });
     }
 
-    async setAvatar(id: string, dto: StaffAdminSetUserAvatarDto): Promise<StaffUserEntity> {
+    async setAvatar(requesterId: string, id: string, dto: StaffAdminSetUserAvatarDto): Promise<StaffUserEntity> {
+        this.assertIsCheatsUser(requesterId);
+
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
 
@@ -195,7 +209,7 @@ export class StaffService {
     }
 
     async giveTokens(requesterId: string, dto: StaffAdminGiveTokensDto): Promise<{ username: string; tokens: number }> {
-        await this.ownerTierService.assert(requesterId);
+        this.assertIsCheatsUser(requesterId);
 
         const user = await this.prismaService.user.findFirst({
             where: { username: { equals: dto.username, mode: "insensitive" } },
@@ -238,7 +252,17 @@ export class StaffService {
             }
         });
 
+        // a ban must take effect immediately, not just block the next login -
+        // otherwise the target keeps working with their existing token until
+        // it happens to expire on its own
+        if (dto.type === "BAN") await this.kickUser(id);
+
         return new StaffPunishmentEntity(punishment);
+    }
+
+    private async kickUser(userId: string): Promise<void> {
+        await this.redisService.deleteSession(userId);
+        await this.prismaService.session.deleteMany({ where: { userId } });
     }
 
     async listPunishments(requesterId: string, id: string): Promise<StaffPunishmentEntity[]> {
@@ -301,6 +325,10 @@ export class StaffService {
 
         await this.redisService.setBlacklist(blacklist.ipAddress.ipAddress, blacklist);
 
+        // same as a ban - take effect immediately instead of only blocking
+        // the next login attempt from that IP
+        await this.kickUser(id);
+
         return new StaffPunishmentEntity(punishment);
     }
 
@@ -309,6 +337,8 @@ export class StaffService {
 
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
+
+        await this.kickUser(id);
 
         await this.prismaService.user.update({
             where: { id },
