@@ -34,6 +34,8 @@ export { default as StaffExperiments } from "./Staff/Experiments/route";
 export { default as StaffModeration } from "./Staff/Moderation/route";
 export { default as StaffBlooks } from "./Staff/Blooks/route";
 export { default as StaffPacks } from "./Staff/Packs/route";
+export { default as StaffNews } from "./Staff/News/route";
+export { default as StaffBoosters } from "./Staff/Boosters/route";
 export { default as Test } from "./Test/route";
 
 // INTERNAL ROUTES

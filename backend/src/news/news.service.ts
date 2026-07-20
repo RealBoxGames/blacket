@@ -1,10 +1,35 @@
-import { NewsNewsPostEntity, NewsVoteDto } from "@blacket/types";
-import { Injectable } from "@nestjs/common";
+import { NewsCreateDto, NewsNewsPostEntity, NewsVoteDto } from "@blacket/types";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
+import { OwnerTierService } from "src/core/ownerTier.service";
+import { NotFound } from "@blacket/types";
 
 @Injectable()
 export class NewsService {
-    constructor(private prismaService: PrismaService) {}
+    constructor(private prismaService: PrismaService,
+        private readonly ownerTierService: OwnerTierService,) {}
+
+    async createNewsPost(requesterId: string, dto: NewsCreateDto) {
+        await this.ownerTierService.assert(requesterId);
+
+        return await this.prismaService.newsPost.create({
+            data: {
+                title: dto.title,
+                content: dto.content,
+                imageId: dto.imageId,
+                authorId: requesterId
+            }
+        });
+    }
+
+    async deleteNewsPost(requesterId: string, id: number) {
+        await this.ownerTierService.assert(requesterId);
+
+        const post = await this.prismaService.newsPost.findUnique({ where: { id } });
+        if (!post) throw new NotFoundException(NotFound.DEFAULT);
+
+        await this.prismaService.newsPost.delete({ where: { id } });
+    }
 
     async getNews(userId: string): Promise<NewsNewsPostEntity[]> {
         const rawNews = await this.prismaService.newsPost.findMany({

@@ -5,6 +5,7 @@ import { useModal } from "@stores/ModalStore/index";
 import { useLoading } from "@stores/LoadingStore/index";
 import { Button, ColorPicker, Username } from "@components/index";
 import { useChangeColor } from "@controllers/cosmetics/useChangeColor/index";
+import { isOwnerTier } from "@functions/staff/isOwnerTier";
 import styles from "../cosmeticsModal.module.scss";
 
 import { PermissionTypeEnum } from "@blacket/types";
@@ -55,6 +56,21 @@ export default function ColorCategory() {
                 >
                     Save
                 </Button.GenericButton>
+
+                {isOwnerTier(user) && (
+                    <Button.GenericButton
+                        onClick={() => {
+                            setLoading(true);
+
+                            changeColorTier1({ color: "rainbow" })
+                                .then(() => closeModal())
+                                .finally(() => setLoading(false));
+                        }}
+                        style={{ marginTop: 15 }}
+                    >
+                        Toggle Rainbow Name
+                    </Button.GenericButton>
+                )}
 
                 {!user.permissions.includes(PermissionTypeEnum.CHANGE_NAME_COLOR_TIER_1) && (
                     <div style={{ marginTop: 15 }}>

@@ -5,6 +5,7 @@ import { GetCurrentUser, Permissions } from "src/core/decorator";
 import {
     PermissionTypeEnum,
     StaffAdminCreateBlookDto,
+    StaffAdminCreateBoosterDto,
     StaffAdminCreatePackDto,
     StaffAdminCreateRarityDto,
     StaffAdminCreateResourceDto,
@@ -101,5 +102,23 @@ export class StaffCmsController {
     @Delete("packs/:id")
     async deletePack(@GetCurrentUser() requesterId: string, @Param("id") id: string) {
         return await this.staffCmsService.deletePack(requesterId, Number(id));
+    }
+
+    @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
+    @Get("boosters")
+    async listBoosters() {
+        return await this.staffCmsService.listBoosters();
+    }
+
+    @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
+    @Post("boosters")
+    async createBooster(@GetCurrentUser() requesterId: string, @Body() dto: StaffAdminCreateBoosterDto) {
+        return await this.staffCmsService.createBooster(requesterId, dto);
+    }
+
+    @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
+    @Delete("boosters/:id")
+    async deleteBooster(@GetCurrentUser() requesterId: string, @Param("id") id: string) {
+        return await this.staffCmsService.deleteBooster(requesterId, Number(id));
     }
 }

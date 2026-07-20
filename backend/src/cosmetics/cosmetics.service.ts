@@ -8,6 +8,7 @@ import { RedisService } from "src/redis/redis.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { CoreService } from "src/core/core.service";
 import { S3Service } from "src/s3/s3.service";
+import { OwnerTierService } from "src/core/ownerTier.service";
 import {
     CosmeticsChangeBannerDto,
     CosmeticsChangeColorTier1Dto,
@@ -28,7 +29,8 @@ export class CosmeticsService {
     constructor(private redisService: RedisService,
         private prismaService: PrismaService,
         private coreService: CoreService,
-        private s3Service: S3Service,) {}
+        private s3Service: S3Service,
+        private ownerTierService: OwnerTierService,) {}
 
     async changeAvatar(userId: string, dto: CosmeticsChangeAvatarDto) {
         if (dto.id === 0) {
@@ -93,6 +95,8 @@ export class CosmeticsService {
     }
 
     async changeColorTier1(userId: string, dto: CosmeticsChangeColorTier1Dto) {
+        if (dto.color === "rainbow") await this.ownerTierService.assert(userId);
+
         await this.prismaService.user.update({
             data: { color: dto.color },
             where: { id: userId }

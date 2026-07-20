@@ -120,6 +120,18 @@ const STAFF_PAGES: Page[] = [
         text: "Packs",
         link: "/staff/packs",
         permission: PermissionTypeEnum.MANAGE_DATA
+    },
+    {
+        icon: "fas fa-newspaper",
+        text: "News",
+        link: "/staff/news",
+        permission: PermissionTypeEnum.MANAGE_DATA
+    },
+    {
+        icon: "fas fa-bolt",
+        text: "Boosters",
+        link: "/staff/boosters",
+        permission: PermissionTypeEnum.MANAGE_DATA
     }
 ];
 

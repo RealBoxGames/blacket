@@ -13,7 +13,7 @@ import { NewsService } from "./news.service";
 import { GetCurrentUser } from "src/core/decorator";
 import { ApiTags } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
-import { NewsNewsPostEntity, NewsVoteDto } from "@blacket/types";
+import { NewsCreateDto, NewsNewsPostEntity, NewsVoteDto } from "@blacket/types";
 
 @ApiTags("news")
 @Controller("news")
@@ -41,5 +41,16 @@ export class NewsController {
     deleteVote(@GetCurrentUser() userId: string,
         @Param("id", ParseIntPipe) newsPostId: number,) {
         return this.newsService.deleteVote(userId, newsPostId);
+    }
+
+    @Post()
+    async createNewsPost(@GetCurrentUser() userId: string, @Body() dto: NewsCreateDto) {
+        return await this.newsService.createNewsPost(userId, dto);
+    }
+
+    @Delete(":id")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async deleteNewsPost(@GetCurrentUser() userId: string, @Param("id", ParseIntPipe) id: number) {
+        return await this.newsService.deleteNewsPost(userId, id);
     }
 }

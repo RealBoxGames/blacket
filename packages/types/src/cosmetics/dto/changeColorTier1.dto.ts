@@ -1,10 +1,11 @@
-import { IsNotEmpty, Length, Matches, Validate } from "class-validator";
+import { IsNotEmpty, Matches } from "class-validator";
 
+// "rainbow" is a special sentinel value (animated gradient), restricted to
+// Owner/Developer server-side in CosmeticsService - the DTO just needs to
+// let it through validation alongside plain hex colors.
 export class CosmeticsChangeColorTier1Dto {
     @IsNotEmpty()
-    @Length(7)
-    @Matches(/^#[0-9a-fA-F]{6}$/)
-    @Validate((value: string) => value.length === 7)
+    @Matches(/^(#[0-9a-fA-F]{6}|rainbow)$/)
     readonly color: string;
 }
 

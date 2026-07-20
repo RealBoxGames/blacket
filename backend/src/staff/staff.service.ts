@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.service";
 import { PermissionsService } from "src/permissions/permissions.service";
-import { OWNER_TIER_GROUPS } from "src/core/constants";
+import { OwnerTierService } from "src/core/ownerTier.service";
 import {
     Forbidden,
     NotFound,
@@ -34,7 +34,8 @@ const USER_SELECT = {
 export class StaffService {
     constructor(private readonly prismaService: PrismaService,
         private readonly redisService: RedisService,
-        private readonly permissionsService: PermissionsService,) {}
+        private readonly permissionsService: PermissionsService,
+        private readonly ownerTierService: OwnerTierService,) {}
 
     private toEntity(user: any): StaffUserEntity {
         return new StaffUserEntity({
@@ -48,16 +49,6 @@ export class StaffService {
             avatarShiny: user.avatar?.shiny ?? false,
             groups: user.groups
         });
-    }
-
-    private async assertIsOwnerOrDeveloper(userId: string): Promise<void> {
-        const user = await this.prismaService.user.findUnique({
-            where: { id: userId },
-            select: { groups: { select: { name: true } } }
-        });
-
-        const isOwnerTier = user?.groups.some((group) => OWNER_TIER_GROUPS.includes(group.name)) ?? false;
-        if (!isOwnerTier) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
     }
 
     private async assertHasPermission(userId: string, permission: PermissionType): Promise<void> {
@@ -185,7 +176,7 @@ export class StaffService {
     }
 
     async editGroups(requesterId: string, id: string, dto: StaffAdminEditUserGroupsDto): Promise<StaffUserEntity> {
-        await this.assertIsOwnerOrDeveloper(requesterId);
+        await this.ownerTierService.assert(requesterId);
 
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
@@ -204,7 +195,7 @@ export class StaffService {
     }
 
     async giveTokens(requesterId: string, dto: StaffAdminGiveTokensDto): Promise<{ username: string; tokens: number }> {
-        await this.assertIsOwnerOrDeveloper(requesterId);
+        await this.ownerTierService.assert(requesterId);
 
         const user = await this.prismaService.user.findFirst({
             where: { username: { equals: dto.username, mode: "insensitive" } },
@@ -314,7 +305,7 @@ export class StaffService {
     }
 
     async deleteUser(requesterId: string, id: string): Promise<void> {
-        await this.assertIsOwnerOrDeveloper(requesterId);
+        await this.ownerTierService.assert(requesterId);
 
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);

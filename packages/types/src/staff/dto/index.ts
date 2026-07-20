@@ -1,4 +1,5 @@
 export * from "./createBlook.dto";
+export * from "./createBooster.dto";
 export * from "./createGroup.dto";
 export * from "./createItem.dto";
 export * from "./createItemShopItem.dto";
