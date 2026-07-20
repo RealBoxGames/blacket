@@ -29,6 +29,12 @@ const PAGES: { left: Page[]; bottom: Page[] } = {
             isChat: true
         },
         {
+            icon: "fas fa-envelope",
+            text: "Direct Messages",
+            link: "/direct-messages",
+            textSizeOverride: 16
+        },
+        {
             icon: "fas fa-scale-balanced",
             text: "Trading Plaza",
             link: "/trading-plaza",

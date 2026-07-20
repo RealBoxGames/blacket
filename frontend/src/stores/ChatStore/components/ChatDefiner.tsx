@@ -101,6 +101,10 @@ export default function ChatDefiner() {
 
         addMention(data);
 
+        // mentions/toasts should fire regardless of which room is open, but
+        // don't let a message from a different room end up in this one's list
+        if (data.roomId !== room) return;
+
         const nonce = data.nonce;
 
         if (!nonce) {

@@ -24,6 +24,61 @@ export class ChatService {
         private readonly socketService: SocketService,
         private readonly permissionsService: PermissionsService,) {}
 
+    async findOrCreateDm(userId: string, targetUserId: string): Promise<{ roomId: number }> {
+        if (userId === targetUserId) throw new ForbiddenException(Forbidden.DEFAULT);
+
+        const target = await this.prismaService.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
+        if (!target) throw new NotFoundException(NotFound.UNKNOWN_USER);
+
+        const existing = await this.prismaService.room.findFirst({
+            where: {
+                isDm: true,
+                AND: [
+                    { users: { some: { id: userId } } },
+                    { users: { some: { id: targetUserId } } }
+                ]
+            },
+            select: { id: true }
+        });
+        if (existing) return { roomId: existing.id };
+
+        const room = await this.prismaService.room.create({
+            data: {
+                name: `dm-${userId}-${targetUserId}`,
+                public: false,
+                isDm: true,
+                users: { connect: [{ id: userId }, { id: targetUserId }] }
+            },
+            include: { users: { select: { id: true } } }
+        });
+
+        await this.redisService.setRoom(room.id, room);
+
+        return { roomId: room.id };
+    }
+
+    async listDms(userId: string) {
+        const rooms = await this.prismaService.room.findMany({
+            where: { isDm: true, users: { some: { id: userId } } },
+            include: {
+                users: {
+                    where: { id: { not: userId } },
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: { select: { blookId: true, shiny: true } }
+                    }
+                }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return rooms.map((room) => ({
+            roomId: room.id,
+            otherUser: room.users[0] ?? null
+        }));
+    }
+
     async getMessages(userId: string, roomId: number = 0, limit: number = 50) {
         const room = await this.redisService.getRoom(roomId);
         if (!room) throw new NotFoundException(NotFound.UNKNOWN_ROOM);

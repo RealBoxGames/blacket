@@ -28,6 +28,16 @@ export class ChatController {
         return await this.commandsService.listCommandsForUser(userId);
     }
 
+    @Get("dms")
+    async listDms(@GetCurrentUser() userId: string) {
+        return await this.chatService.listDms(userId);
+    }
+
+    @Post("dm/:userId")
+    async findOrCreateDm(@GetCurrentUser() userId: string, @Param("userId") targetUserId: string) {
+        return await this.chatService.findOrCreateDm(userId, targetUserId);
+    }
+
     @Throttle({ global: { limit: 1, ttl: seconds(1) } })
     @Post("messages/:roomId/commands/:command")
     async executeCommand(@GetCurrentUser() userId: string,

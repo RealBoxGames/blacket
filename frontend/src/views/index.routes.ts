@@ -13,6 +13,7 @@ export { default as Rules } from "./Rules/route";
 export { default as Dashboard } from "./Dashboard/route";
 export { default as Leaderboard } from "./Leaderboard/route";
 export { default as Chat } from "./Chat/route";
+export { default as DirectMessages } from "./DirectMessages/route";
 export { default as TradingPlaza } from "./TradingPlaza/route";
 export { default as Guilds } from "./Guilds/route";
 export { default as GuildDiscovery } from "./Guilds/Discovery/route";

@@ -266,6 +266,10 @@ export default function Dashboard() {
                             }
                         </>}
 
+                        {viewingUser.id !== user.id && <StatButton icon="fas fa-envelope" onClick={() => {
+                            navigate(`/direct-messages/${viewingUser.id}`);
+                        }}>Direct Message</StatButton>}
+
                         {viewingUser.id !== user.id && <StatButton icon="fas fa-reply" onClick={() => {
                             setViewingUser(user);
 
