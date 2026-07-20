@@ -11,6 +11,22 @@ import styles from "../chat.module.scss";
 
 import { ChatMessageProps } from "../chat.d";
 
+const IMAGE_EMBED_GROUPS = ["VIP", "MVP", "Owner", "Developer"];
+const IMAGE_URL_REGEX = /https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?/gi;
+
+function canEmbedImages(author: { badges?: { name: string }[] } | null): boolean {
+    if (!author?.badges) return false;
+
+    return author.badges.some((badge) => IMAGE_EMBED_GROUPS.includes(badge.name));
+}
+
+function extractImageUrls(content: string): string[] {
+    const matches = content.match(IMAGE_URL_REGEX);
+    if (!matches) return [];
+
+    return Array.from(new Set(matches)).slice(0, 4);
+}
+
 export default memo(function ChatMessage({ message, newUser, mentionsMe, isSending, isEditing, messageContextMenu, userContextMenu, onEditSave, onEditCancel }: ChatMessageProps) {
     if (!messageContextMenu || isSending) messageContextMenu = () => { };
     if (!userContextMenu || isSending) userContextMenu = () => { };
@@ -56,6 +72,11 @@ export default memo(function ChatMessage({ message, newUser, mentionsMe, isSendi
     const handleEditSave = (content: string) => onEditSave(content);
 
     const big = isAvatarBig(author);
+
+    const imageUrls = useMemo(() =>
+        (!isEditing && canEmbedImages(author)) ? extractImageUrls(message.content) : [],
+        [message.content, isEditing, author]
+    );
 
     if (author) return (
         <span className={styles.messageHolder} style={{
@@ -205,6 +226,14 @@ export default memo(function ChatMessage({ message, newUser, mentionsMe, isSendi
                                     </div>
                                 </>
                             }
+
+                            {imageUrls.length > 0 && <div className={styles.messageImageEmbeds}>
+                                {imageUrls.map((url) => (
+                                    <a key={url} href={url} target="_blank" rel="noreferrer noopener">
+                                        <img src={url} className={styles.messageImageEmbed} loading="lazy" />
+                                    </a>
+                                ))}
+                            </div>}
                         </div>
                     </div>
 

@@ -18,6 +18,7 @@ import { useCachedUser } from "@stores/CachedUserStore/index";
 import { useSound } from "@stores/SoundStore/index";
 import { Joystick, WaterBackground } from "@components/index";
 import { MobileRunButton } from "./components";
+import { InputContainer } from "../Chat/components";
 import { lerp } from "@functions/core/mathematics";
 import styles from "./tradingPlaza.module.scss";
 
@@ -93,12 +94,19 @@ export default function TradingPlaza() {
     const { fontIdToName } = useData();
     const { addCachedUser } = useCachedUser();
     const { playSound, defineSounds, stopSound, setVolume } = useSound();
-    const { messages, fetchMessages, sendMessage } = useChat();
+    const { messages, setRoom } = useChat();
 
     if (!user) return <Navigate to="/login" />;
 
     const brenderCanvasRef = useRef<BrenderCanvasRef>(null);
     const waterBackgroundRef = useRef<HTMLDivElement>(null);
+
+    // trading-plaza is room 1 - scope the shared chat state to it so chat
+    // bubbles/the input bar below reflect this room instead of whatever was
+    // last open (e.g. global chat)
+    useEffect(() => {
+        setRoom(1);
+    }, []);
 
     const [useSystemTime, setUseSystemTime] = useState<boolean>(true);
     const [debugMinute, setDebugMinute] = useState<number>(() =>
@@ -356,23 +364,16 @@ export default function TradingPlaza() {
                 currentY = entity.y - rectHeight - 30;
             }
 
-            if (
-                messages
-                    .reverse()
-                    .some(
-                        (msg) =>
-                            msg.authorId === entity.id &&
-                            Date.now() - new Date(msg.createdAt).getTime() <
-                            5000
-                    )
-            ) {
-                const msg =
-                    messages.find(
-                        (msg) =>
-                            msg.authorId === entity.id &&
-                            Date.now() - new Date(msg.createdAt).getTime() <
-                            5000
-                    )?.content ?? "";
+            // messages is newest-first (new ones are prepended), so the first
+            // match is already the most recent one - no need to reverse/mutate
+            const recentMessage = messages.find(
+                (msg) =>
+                    msg.authorId === entity.id &&
+                    Date.now() - new Date(msg.createdAt).getTime() < 5000
+            );
+
+            if (recentMessage) {
+                const msg = recentMessage.content;
                 const padding = 20;
                 const maxWidth = 200;
 
@@ -429,6 +430,7 @@ export default function TradingPlaza() {
                 } as any,
                 onFrame: async (entity, deltaTime) => {
                     renderPlayerText(entity);
+                    renderPlayerPopups(entity, player);
 
                     entity.x = lerp(
                         entity.x,
@@ -508,6 +510,7 @@ export default function TradingPlaza() {
             hasCollision: true,
             onFrame: (entity, deltaTime) => {
                 renderPlayerText(entity, 10);
+                renderPlayerPopups(entity, entity);
 
                 let moveX = 0;
                 let moveY = 0;
@@ -853,6 +856,8 @@ export default function TradingPlaza() {
                     brender.pressing["d"] = false;
                 }}
             />
+
+            <InputContainer placeholder="Message Trading Plaza..." maxLength={2048} />
         </div>
     );
 }

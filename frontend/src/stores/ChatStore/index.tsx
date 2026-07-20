@@ -72,6 +72,12 @@ export function useChat() {
 
         await Promise.all(Array.from(userMap.keys()).map((uid) => addCachedUser(uid)));
 
+        // if the room changed again while this fetch was in flight (e.g. rapidly
+        // switching between DMs), a slower earlier fetch resolving after a newer
+        // one would otherwise clobber the correct messages with the wrong room's -
+        // drop the result instead of committing it
+        if (useChatStore.getState().room !== r) return messages;
+
         useChatStore.setState({ messages, loadingMessages: false });
 
         return messages;

@@ -226,6 +226,21 @@
     white-space: pre-wrap;
 }
 
+.messageImageEmbeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.messageImageEmbed {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    object-fit: contain;
+    display: block;
+}
+
 .messageForm {
     position: fixed;
     z-index: 5;

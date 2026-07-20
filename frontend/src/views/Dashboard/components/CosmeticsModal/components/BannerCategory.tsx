@@ -7,7 +7,6 @@ import { useModal } from "@stores/ModalStore/index";
 import { SearchBox, Modal } from "@components/index";
 import { Banner } from ".";
 import { useChangeBanner } from "@controllers/cosmetics/useChangeBanner/index";
-import { useUpload } from "@controllers/users/useUpload/index";
 import styles from "../cosmeticsModal.module.scss";
 
 import { PermissionTypeEnum } from "@blacket/types";
@@ -22,8 +21,7 @@ export default function BannerCategory() {
     const { banners } = useData();
     const { closeModal, createModal } = useModal();
 
-    const { changeBanner, uploadBanner, changeBannerUrl } = useChangeBanner();
-    const { uploadFileSmall } = useUpload();
+    const { changeBanner, changeBannerUrl } = useChangeBanner();
 
     const navigate = useNavigate();
 
@@ -33,32 +31,6 @@ export default function BannerCategory() {
         changeBanner({ bannerId: id })
             .then(() => setLoading(false))
             .catch(() => setLoading(false));
-    };
-
-    const onFileSelect = (file: File) => {
-        setLoading(true);
-
-        uploadFileSmall(file)
-            .then((res) => {
-                uploadBanner({ uploadId: res.data.id })
-                    .finally(() => setLoading(false));
-            })
-            .catch(() => setLoading(false));
-    };
-
-    const openFileSelect = () => {
-        if (!user.hasPermission(PermissionTypeEnum.CUSTOM_AVATAR)) return closeModal(), navigate("/store");
-
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".png, .jpg, .jpeg, .gif, .webp";
-        input.onchange = () => {
-            if (!input.files) return;
-
-            onFileSelect(input.files[0]);
-        };
-
-        input.click();
     };
 
     const openUrlModal = () => {
@@ -85,16 +57,9 @@ export default function BannerCategory() {
             />
 
             <div className={styles.holder} data-column={true}>
-                <div className={styles.bannerContainer} style={{ position: "relative" }} onClick={openFileSelect}>
+                <div className={styles.bannerContainer} onClick={openUrlModal}>
                     <img className={styles.bannerImage} src={(user.customBanner || user.customBannerUrl) ? getUserBannerPath(user) : window.constructCDNUrl("/content/icons/upload-banner.png")} />
-                    <div className={styles.bannerName}>Upload Banner</div>
-
-                    <i
-                        className="fas fa-link"
-                        title="Set from URL"
-                        style={{ position: "absolute", bottom: 2, right: 2, fontSize: 12, background: "rgba(0,0,0,0.6)", borderRadius: "50%", padding: 5 }}
-                        onClick={(e) => { e.stopPropagation(); openUrlModal(); }}
-                    />
+                    <div className={styles.bannerName}>Set from URL</div>
                 </div>
 
                 <Banner banner={banners.find((banner) => banner.id === 1)!} onClick={() => onSelect(1)} />

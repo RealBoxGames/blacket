@@ -6,7 +6,6 @@ import { useData } from "@stores/DataStore/index";
 import { useModal } from "@stores/ModalStore/index";
 import { SearchBox, InventoryBlook, ItemContainer, Modal } from "@components/index";
 import { useChangeAvatar } from "@controllers/cosmetics/useChangeAvatar/index";
-import { useUpload } from "@controllers/users/useUpload/index";
 import styles from "../cosmeticsModal.module.scss";
 
 import { BlookObtainMethodEnum, PermissionTypeEnum, UserBlook } from "@blacket/types";
@@ -21,8 +20,7 @@ export default function AvatarCategory() {
     const { blooks } = useData();
     const { closeModal, createModal } = useModal();
 
-    const { changeAvatar, uploadAvatar, changeAvatarUrl } = useChangeAvatar();
-    const { uploadFileSmall } = useUpload();
+    const { changeAvatar, changeAvatarUrl } = useChangeAvatar();
 
     const navigate = useNavigate();
 
@@ -34,32 +32,6 @@ export default function AvatarCategory() {
         changeAvatar({ id })
             .then(() => setLoading(false))
             .catch(() => setLoading(false));
-    };
-
-    const onFileSelect = (file: File) => {
-        setLoading(true);
-
-        uploadFileSmall(file)
-            .then((res) => {
-                uploadAvatar({ uploadId: res.data.id })
-                    .finally(() => setLoading(false));
-            })
-            .catch(() => setLoading(false));
-    };
-
-    const openFileSelect = () => {
-        if (!user.hasPermission(PermissionTypeEnum.CUSTOM_AVATAR)) return closeModal(), navigate("/store");
-
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".png, .jpg, .jpeg, .gif, .webp";
-        input.onchange = () => {
-            if (!input.files) return;
-
-            onFileSelect(input.files[0]);
-        };
-
-        input.click();
     };
 
     const openUrlModal = () => {
@@ -89,17 +61,10 @@ export default function AvatarCategory() {
                 <div style={{ display: "flex", gap: 10, padding: 10 }}>
                     <div
                         className={styles.topBlook}
-                        style={{ position: "relative" }}
-                        onClick={openFileSelect}
+                        title="Set avatar from URL"
+                        onClick={openUrlModal}
                     >
                         <img src={(user.customAvatar || user.customAvatarUrl) ? getUserAvatarPath(user) : window.constructCDNUrl("/content/icons/upload-avatar.png")} />
-
-                        <i
-                            className="fas fa-link"
-                            title="Set from URL"
-                            style={{ position: "absolute", bottom: 2, right: 2, fontSize: 12, background: "rgba(0,0,0,0.6)", borderRadius: "50%", padding: 5 }}
-                            onClick={(e) => { e.stopPropagation(); openUrlModal(); }}
-                        />
                     </div>
 
                     <InventoryBlook
