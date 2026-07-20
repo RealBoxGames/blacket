@@ -47,7 +47,7 @@ export class MarketService {
 
             const pulledBlook = packBlooks.find((blook) => blook.id === blookId);
             const pulledRarity = rarities.find((rarity) => rarity.id === pulledBlook?.rarityId);
-            const experienceToAdd = pulledRarity?.experience ?? 0;
+            const experienceToAdd = Math.round((pulledRarity?.experience ?? 0) * boosters.experience);
 
             // single conditional UPDATE (not read-then-write) so two concurrent
             // opens can't both pass the earlier balance check and double-spend
@@ -188,8 +188,9 @@ export class MarketService {
 
         const chance = this.combineBoosts(boosts.filter((boost) => boost.type === BoostType.CHANCE));
         const shiny = this.combineBoosts(boosts.filter((boost) => boost.type === BoostType.SHINY));
+        const experience = this.combineBoosts(boosts.filter((boost) => boost.type === BoostType.EXPERIENCE));
 
-        return { chance, shiny };
+        return { chance, shiny, experience };
     }
 
     private combineBoosts(boosts: Boost[]) {

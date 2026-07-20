@@ -13,6 +13,7 @@ import {
     initialTitle
 } from "./seeds/initial";
 import { items } from "./seeds/items";
+import { itemShopEntries } from "./seeds/itemShop";
 import { packAmbiences, packs } from "./seeds/packs";
 import { products } from "./seeds/products";
 import { stores } from "./seeds/stores";
@@ -32,6 +33,7 @@ export class PrismaSeedService {
         await this.seedPackAmbiences();
         await this.seedGroups();
         await this.seedItems();
+        await this.seedItemShop();
         await this.seedStores();
         await this.seedProducts();
         await this.seedSubscriptions();
@@ -382,6 +384,38 @@ export class PrismaSeedService {
                     ...itemData
                 } as unknown as Prisma.ItemUncheckedCreateInput
             });
+        }
+    }
+
+    // ItemShop has no unique key on itemId (a shop could carry the same item
+    // at different prices later), so this is a manual find-or-create rather
+    // than a Prisma upsert
+    private async seedItemShop(): Promise<void> {
+        for (const entry of itemShopEntries) {
+            const item = await this.prisma.item.findUnique({
+                where: { name: entry.itemName }
+            });
+
+            if (!item) {
+                this.blacketLogger.warn(`Skipping item shop entry for "${entry.itemName}" because that item does not exist.`, "Database", "Blacket");
+                continue;
+            }
+
+            const existing = await this.prisma.itemShop.findFirst({
+                where: { type: "ITEM", itemId: item.id }
+            });
+
+            const data = {
+                type: "ITEM" as const,
+                itemId: item.id,
+                price: entry.price,
+                enabled: true,
+                weekly: entry.weekly ?? false,
+                priority: entry.priority ?? 0
+            };
+
+            if (existing) await this.prisma.itemShop.update({ where: { id: existing.id }, data });
+            else await this.prisma.itemShop.create({ data });
         }
     }
 

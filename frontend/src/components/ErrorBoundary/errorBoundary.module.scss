@@ -1,0 +1,31 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+.title {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.message {
+    opacity: 0.7;
+    font-size: 13px;
+    max-width: 500px;
+    word-break: break-word;
+}
+
+.retryButton {
+    margin-top: 5px;
+    background-color: var(--secondary-color);
+    color: var(--accent-color);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useUser } from "@stores/UserStore/index";
 import { useData } from "@stores/DataStore/index";
-import { SearchBox, Button, Blook, Input } from "@components/index";
+import { SearchBox, Button, Blook, Input, ErrorBoundary } from "@components/index";
 import { useCheatsUsers } from "@controllers/cheats/useCheatsUsers";
 import { useCheatsGive } from "@controllers/cheats/useCheatsGive";
 import { useCheatsTriggerEvent } from "@controllers/cheats/useCheatsTriggerEvent";
@@ -14,6 +14,14 @@ import { StaffUserEntity } from "@blacket/types";
 type StaffGroup = { id: number; name: string; priority: number };
 
 export default function Cheats() {
+    return (
+        <ErrorBoundary label="Cheats">
+            <CheatsInner />
+        </ErrorBoundary>
+    );
+}
+
+function CheatsInner() {
     const { user, getUserAvatarPath } = useUser();
     const { blooks, resourceIdToPath } = useData();
 

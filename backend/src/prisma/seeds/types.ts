@@ -20,6 +20,13 @@ export interface ItemSeed {
     boosterMultiplier?: number;
 }
 
+export interface ItemShopSeed {
+    itemName: string;
+    price: number;
+    weekly?: boolean;
+    priority?: number;
+}
+
 export interface StoreSeed {
     name: string;
     description: string;

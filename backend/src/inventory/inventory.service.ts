@@ -20,7 +20,7 @@ const minValidSaleCount = 3;
 const rapCacheTTLSeconds = 60;
 
 const boosterEffects = {
-    "1 Hour Booster": {
+    "Rare Booster": {
         global: true,
         types: [BoostType.CHANCE],
         notification: true
@@ -28,6 +28,11 @@ const boosterEffects = {
     "Shiny Booster": {
         global: true,
         types: [BoostType.SHINY],
+        notification: true
+    },
+    "Experience Booster": {
+        global: true,
+        types: [BoostType.EXPERIENCE],
         notification: true
     },
     "Personal Shiny Booster": {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useUser } from "@stores/UserStore/index";
 import { useModal } from "@stores/ModalStore/index";
-import { Button, Modal } from "@components/index";
+import { Button, Modal, ErrorBoundary } from "@components/index";
 import { AvatarCategory, BannerCategory, ColorCategory, FontCategory, GradientCategory, TitleCategory } from "./components/index";
 import styles from "../../dashboard.module.scss";
 
@@ -55,7 +55,9 @@ export default function CosmeticsModal({ category }: CosmeticsModalProps) {
             </div>
 
             <div className={styles.cosmeticsCategoryContainer}>
-                {Category(currentCategory)}
+                <ErrorBoundary label="Cosmetics" key={currentCategory}>
+                    {Category(currentCategory)}
+                </ErrorBoundary>
             </div>
         </>
     );

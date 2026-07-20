@@ -1,11 +1,13 @@
-import { oneHourBoosterItem } from "./one-hour-booster";
+import { rareBoosterItem } from "./rare-booster";
+import { experienceBoosterItem } from "./experience-booster";
 import { personalNormalBoosterItem } from "./personal-normal-booster";
 import { personalShinyBoosterItem } from "./personal-shiny-booster";
 import { shinyBoosterItem } from "./shiny-booster";
 
 export const items = [
-    oneHourBoosterItem,
+    rareBoosterItem,
     shinyBoosterItem,
+    experienceBoosterItem,
     personalShinyBoosterItem,
     personalNormalBoosterItem
 ];

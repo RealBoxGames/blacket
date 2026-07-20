@@ -15,7 +15,9 @@ import {
     NotFound,
     SocketMessageType
 } from "@blacket/types";
-import { Message, PunishmentType, PermissionType } from "@blacket/core";
+import { Message, PunishmentType, PermissionType, BoostType } from "@blacket/core";
+
+const CHAT_MESSAGE_XP = 20;
 
 @Injectable()
 export class ChatService {
@@ -23,6 +25,29 @@ export class ChatService {
         private readonly redisService: RedisService,
         private readonly socketService: SocketService,
         private readonly permissionsService: PermissionsService,) {}
+
+    // deliberately not shared with MarketService's getActiveBoosters (which
+    // also computes CHANCE/SHINY for pack odds) to avoid a circular module
+    // dependency - MarketService already depends on ChatService
+    private async getExperienceMultiplier(userId: string): Promise<number> {
+        const now = new Date();
+
+        const boosts = await this.prismaService.boost.findMany({
+            where: {
+                type: BoostType.EXPERIENCE,
+                OR: [
+                    { solo: false },
+                    { solo: true, userId }
+                ],
+                createdAt: { lte: now },
+                expiresAt: { gte: now }
+            },
+            take: 5,
+            orderBy: { expiresAt: "asc" }
+        });
+
+        return boosts.slice(0, 5).reduce((multiplier, boost) => parseFloat((multiplier + boost.multiplier - 1).toFixed(3)), 1);
+    }
 
     async findOrCreateDm(userId: string, targetUserId: string): Promise<{ roomId: number }> {
         if (userId === targetUserId) throw new ForbiddenException(Forbidden.DEFAULT);
@@ -153,6 +178,8 @@ export class ChatService {
             select: { chatColor: true }
         });
 
+        const experienceMultiplier = await this.getExperienceMultiplier(userId);
+
         return await this.prismaService.$transaction(async (tx) => {
             const message = await tx.message.create({
                 data: {
@@ -181,7 +208,7 @@ export class ChatService {
 
             await tx.user.update({
                 where: { id: userId },
-                data: { experience: { increment: 20 } }
+                data: { experience: { increment: Math.round(CHAT_MESSAGE_XP * experienceMultiplier) } }
             });
 
             // room.public was already checked above - private (DM) messages must

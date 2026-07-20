@@ -6,6 +6,7 @@ import ColorPicker from "./ColorPicker";
 import Container from "./Container";
 import * as Development from "./Development";
 import Dropdown from "./Dropdown";
+import ErrorBoundary from "./ErrorBoundary";
 import ErrorContainer from "./ErrorContainer";
 import Form from "./Form";
 import Header from "./Header";
@@ -46,6 +47,7 @@ export {
     Container,
     Development,
     Dropdown,
+    ErrorBoundary,
     ErrorContainer,
     Form,
     Header,
