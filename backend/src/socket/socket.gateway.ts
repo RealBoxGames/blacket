@@ -23,7 +23,11 @@ import { SocketMessageType, SocketTradingPlazaMoveDto } from "@blacket/types";
 @WebSocketGateway(0, {
     path: "/gateway",
     pingInterval: 5000,
-    pingTimeout: 20000
+    pingTimeout: 20000,
+    cors: {
+        origin: true,
+        credentials: true
+    }
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     constructor(private readonly socketService: SocketService) {}
