@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.service";
 import { PermissionsService } from "src/permissions/permissions.service";
-import { SUPER_ADMIN_USERNAME } from "src/core/constants";
+import { OWNER_TIER_GROUPS } from "src/core/constants";
 import {
     Forbidden,
     NotFound,
@@ -50,18 +50,30 @@ export class StaffService {
         });
     }
 
-    private async assertIsSuperAdmin(userId: string): Promise<void> {
+    private async assertIsOwnerOrDeveloper(userId: string): Promise<void> {
         const user = await this.prismaService.user.findUnique({
             where: { id: userId },
-            select: { username: true }
+            select: { groups: { select: { name: true } } }
         });
 
-        if (!user || user.username !== SUPER_ADMIN_USERNAME) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
+        const isOwnerTier = user?.groups.some((group) => OWNER_TIER_GROUPS.includes(group.name)) ?? false;
+        if (!isOwnerTier) throw new ForbiddenException(Forbidden.STAFF_ONLY_OWNER);
     }
 
     private async assertHasPermission(userId: string, permission: PermissionType): Promise<void> {
         const permissions = await this.permissionsService.getUserPermissions(userId);
         if (!this.permissionsService.hasPermission(permissions, permission)) throw new ForbiddenException(Forbidden.DEFAULT);
+    }
+
+    // Minimal user lookup for the Moderation page - usable by Helper/Moderator/Admin too,
+    // so it deliberately excludes currency/groups (that stays behind MANAGE_DATA in searchUsers).
+    async searchUsersForModeration(search?: string): Promise<{ id: string; username: string }[]> {
+        return await this.prismaService.user.findMany({
+            where: search ? { username: { contains: search, mode: "insensitive" } } : {},
+            select: { id: true, username: true },
+            orderBy: { createdAt: "desc" },
+            take: 50
+        });
     }
 
     async searchUsers(search?: string): Promise<StaffUserEntity[]> {
@@ -173,7 +185,7 @@ export class StaffService {
     }
 
     async editGroups(requesterId: string, id: string, dto: StaffAdminEditUserGroupsDto): Promise<StaffUserEntity> {
-        await this.assertIsSuperAdmin(requesterId);
+        await this.assertIsOwnerOrDeveloper(requesterId);
 
         const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
         if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
@@ -192,7 +204,7 @@ export class StaffService {
     }
 
     async giveTokens(requesterId: string, dto: StaffAdminGiveTokensDto): Promise<{ username: string; tokens: number }> {
-        await this.assertIsSuperAdmin(requesterId);
+        await this.assertIsOwnerOrDeveloper(requesterId);
 
         const user = await this.prismaService.user.findFirst({
             where: { username: { equals: dto.username, mode: "insensitive" } },
@@ -206,6 +218,12 @@ export class StaffService {
         });
 
         return { username: user.username, tokens: dto.tokens };
+    }
+
+    private permissionForPunishmentType(type: PunishmentType): PermissionType {
+        if (type === PunishmentType.BAN) return PermissionType.BAN_USERS;
+        if (type === PunishmentType.BLACKLIST) return PermissionType.BLACKLIST_USERS;
+        return PermissionType.MUTE_USERS;
     }
 
     async punishUser(requesterId: string, id: string, dto: StaffAdminPunishUserDto): Promise<StaffPunishmentEntity> {
@@ -235,7 +253,8 @@ export class StaffService {
     async listPunishments(requesterId: string, id: string): Promise<StaffPunishmentEntity[]> {
         const permissions = await this.permissionsService.getUserPermissions(requesterId);
         const canView = this.permissionsService.hasPermission(permissions, PermissionType.BAN_USERS) ||
-            this.permissionsService.hasPermission(permissions, PermissionType.MUTE_USERS);
+            this.permissionsService.hasPermission(permissions, PermissionType.MUTE_USERS) ||
+            this.permissionsService.hasPermission(permissions, PermissionType.BLACKLIST_USERS);
         if (!canView) throw new ForbiddenException(Forbidden.DEFAULT);
 
         const punishments = await this.prismaService.punishment.findMany({
@@ -247,12 +266,62 @@ export class StaffService {
     }
 
     async revokePunishment(requesterId: string, punishmentId: number): Promise<void> {
-        const punishment = await this.prismaService.punishment.findUnique({ where: { id: punishmentId } });
+        const punishment = await this.prismaService.punishment.findUnique({
+            where: { id: punishmentId },
+            include: { blacklists: { include: { ipAddress: true } } }
+        });
         if (!punishment) throw new NotFoundException(NotFound.DEFAULT);
 
-        const requiredPermission = punishment.type === PunishmentType.BAN ? PermissionType.BAN_USERS : PermissionType.MUTE_USERS;
-        await this.assertHasPermission(requesterId, requiredPermission);
+        await this.assertHasPermission(requesterId, this.permissionForPunishmentType(punishment.type));
 
         await this.prismaService.punishment.delete({ where: { id: punishmentId } });
+
+        for (const blacklist of punishment.blacklists) await this.redisService.deleteBlacklist(blacklist.ipAddress.ipAddress);
+    }
+
+    async ipBanUser(requesterId: string, id: string, dto: { reason: string; durationMinutes?: number }): Promise<StaffPunishmentEntity> {
+        await this.assertHasPermission(requesterId, PermissionType.BLACKLIST_USERS);
+
+        const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true, ipAddressId: true } });
+        if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
+        if (!user.ipAddressId) throw new NotFoundException(NotFound.DEFAULT);
+
+        const expiresAt = dto.durationMinutes
+            ? new Date(Date.now() + dto.durationMinutes * 60 * 1000)
+            : new Date(Date.now() + PERMANENT_DURATION_MS);
+
+        const punishment = await this.prismaService.punishment.create({
+            data: {
+                userId: id,
+                staffId: requesterId,
+                type: PunishmentType.BLACKLIST,
+                reason: dto.reason,
+                expiresAt
+            }
+        });
+
+        const blacklist = await this.prismaService.blacklist.create({
+            data: {
+                ipAddressId: user.ipAddressId,
+                punishmentId: punishment.id
+            },
+            include: { ipAddress: true, punishment: true }
+        });
+
+        await this.redisService.setBlacklist(blacklist.ipAddress.ipAddress, blacklist);
+
+        return new StaffPunishmentEntity(punishment);
+    }
+
+    async deleteUser(requesterId: string, id: string): Promise<void> {
+        await this.assertIsOwnerOrDeveloper(requesterId);
+
+        const user = await this.prismaService.user.findUnique({ where: { id }, select: { id: true } });
+        if (!user) throw new NotFoundException(NotFound.UNKNOWN_USER);
+
+        await this.prismaService.user.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        });
     }
 }

@@ -8,6 +8,7 @@ import {
     StaffAdminEditUserGroupsDto,
     StaffAdminGiveTokensDto,
     StaffAdminGiveUserBlookDto,
+    StaffAdminIpBanUserDto,
     StaffAdminPunishUserDto,
     StaffAdminSetUserAvatarDto
 } from "@blacket/types";
@@ -16,6 +17,12 @@ import {
 @Controller("staff")
 export class StaffController {
     constructor(private readonly staffService: StaffService) { }
+
+    @Permissions({ permissions: [PermissionTypeEnum.MUTE_USERS] })
+    @Get("moderation/users")
+    async searchUsersForModeration(@Query("search") search?: string) {
+        return await this.staffService.searchUsersForModeration(search);
+    }
 
     @Permissions({ permissions: [PermissionTypeEnum.MANAGE_DATA] })
     @Get("users")
@@ -77,5 +84,15 @@ export class StaffController {
     @Delete("punishments/:punishmentId")
     async revokePunishment(@GetCurrentUser() requesterId: string, @Param("punishmentId") punishmentId: string) {
         return await this.staffService.revokePunishment(requesterId, Number(punishmentId));
+    }
+
+    @Post("users/:id/ip-ban")
+    async ipBanUser(@GetCurrentUser() requesterId: string, @Param("id") id: string, @Body() dto: StaffAdminIpBanUserDto) {
+        return await this.staffService.ipBanUser(requesterId, id, dto);
+    }
+
+    @Delete("users/:id")
+    async deleteUser(@GetCurrentUser() requesterId: string, @Param("id") id: string) {
+        return await this.staffService.deleteUser(requesterId, id);
     }
 }

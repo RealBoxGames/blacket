@@ -97,23 +97,17 @@ const PAGES: { left: Page[]; bottom: Page[] } = {
 
 const STAFF_PAGES: Page[] = [
     {
-        icon: "fas fa-wrench",
-        text: "Staff Panel",
-        link: "/staff"
+        icon: "fas fa-shield-halved",
+        text: "Moderation",
+        link: "/staff/moderation",
+        permission: PermissionTypeEnum.MUTE_USERS
     },
     {
         icon: "fas fa-user-gear",
         text: "User Manager",
-        link: "/staff/users",
-        permission: PermissionTypeEnum.MUTE_USERS,
+        link: "/staff",
+        permission: PermissionTypeEnum.MANAGE_DATA,
         textSizeOverride: 18
-    },
-    {
-        icon: "fas fa-flag",
-        text: "Report Manager",
-        link: "/staff/reports",
-        permission: PermissionTypeEnum.MANAGE_REPORTS,
-        textSizeOverride: 16
     }
 ];
 
@@ -134,7 +128,12 @@ export default memo(function Sidebar() {
     }, []);
 
     const hasStaffPermission = useMemo(() =>
-        user?.hasPermission(PermissionTypeEnum.VIEW_AUDIT) || false,
+        user?.hasPermission(PermissionTypeEnum.MUTE_USERS) || false,
+        [user]
+    );
+
+    const visibleStaffPages = useMemo(() =>
+        STAFF_PAGES.filter((page) => !page.permission || user?.hasPermission(page.permission)),
         [user]
     );
 
@@ -165,7 +164,7 @@ export default memo(function Sidebar() {
 
                 {hasStaffPermission && (
                     <div className={styles.pageScrollerStaff}>
-                        {STAFF_PAGES.map((page, index) => (
+                        {visibleStaffPages.map((page, index) => (
                             <PageItem
                                 key={index}
                                 page={page}

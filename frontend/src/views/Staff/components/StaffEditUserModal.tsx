@@ -11,17 +11,16 @@ import { useGiveUserBlook } from "@controllers/staff/useGiveUserBlook";
 import { useSetUserAvatar } from "@controllers/staff/useSetUserAvatar";
 import { useStaffGroups } from "@controllers/staff/useStaffGroups";
 import { useEditUserGroups } from "@controllers/staff/useEditUserGroups";
-import { usePunishUser } from "@controllers/staff/usePunishUser";
-import { useListPunishments } from "@controllers/staff/useListPunishments";
-import { useRevokePunishment } from "@controllers/staff/useRevokePunishment";
+import { useDeleteUser } from "@controllers/staff/useDeleteUser";
+import ModerationPanel from "./ModerationPanel";
 
 type StaffGroup = { id: number; name: string; priority: number };
-type Punishment = { id: number; type: string; reason: string; expiresAt: string; createdAt: string };
 
-export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated }: {
+export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated, onDeleted }: {
     staffUser: StaffUserEntity;
     isSuperAdmin: boolean;
     onUpdated: (updated: StaffUserEntity) => void;
+    onDeleted?: (userId: string) => void;
 }) {
     const { closeModal } = useModal();
     const { blooks } = useData();
@@ -32,9 +31,7 @@ export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated 
     const { setUserAvatar } = useSetUserAvatar();
     const { getGroups } = useStaffGroups();
     const { editUserGroups } = useEditUserGroups();
-    const { punishUser } = usePunishUser();
-    const { listPunishments } = useListPunishments();
-    const { revokePunishment } = useRevokePunishment();
+    const { deleteUser } = useDeleteUser();
 
     const [error, setError] = useState<string>("");
 
@@ -57,25 +54,18 @@ export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated 
     const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>(staffUser.groups.map((g) => g.id));
     const [groupsLoading, setGroupsLoading] = useState<boolean>(false);
 
-    const canBan = currentUser?.hasPermission(PermissionTypeEnum.BAN_USERS) ?? false;
-    const canMute = currentUser?.hasPermission(PermissionTypeEnum.MUTE_USERS) ?? false;
+    const canModerate = (currentUser?.hasPermission(PermissionTypeEnum.BAN_USERS) ||
+        currentUser?.hasPermission(PermissionTypeEnum.MUTE_USERS) ||
+        currentUser?.hasPermission(PermissionTypeEnum.BLACKLIST_USERS)) ?? false;
 
-    const [punishReason, setPunishReason] = useState<string>("");
-    const [punishDuration, setPunishDuration] = useState<string>("");
-    const [punishLoading, setPunishLoading] = useState<boolean>(false);
-    const [punishments, setPunishments] = useState<Punishment[]>([]);
+    const [deleteConfirming, setDeleteConfirming] = useState<boolean>(false);
+    const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
     useEffect(() => {
         if (!isSuperAdmin) return;
 
         getGroups().then((res) => setGroups(res.data)).catch(() => setGroups([]));
     }, [isSuperAdmin]);
-
-    useEffect(() => {
-        if (!canBan && !canMute) return;
-
-        listPunishments(staffUser.id).then((res) => setPunishments(res.data)).catch(() => setPunishments([]));
-    }, [canBan, canMute]);
 
     const saveCurrency = () => {
         setCurrencyLoading(true);
@@ -115,32 +105,19 @@ export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated 
         setSelectedGroupIds((current) => current.includes(id) ? current.filter((g) => g !== id) : [...current, id]);
     };
 
-    const submitPunish = (type: "BAN" | "MUTE") => {
-        if (punishReason.trim() === "") return setError("A reason is required.");
+    const submitDelete = () => {
+        if (!deleteConfirming) return setDeleteConfirming(true);
 
-        setPunishLoading(true);
+        setDeleteLoading(true);
         setError("");
 
-        const durationMinutes = punishDuration.trim() === "" ? undefined : Number(punishDuration);
-
-        punishUser(staffUser.id, type, punishReason, durationMinutes)
-            .then((res) => {
-                setPunishments((current) => [res.data, ...current]);
-                setPunishReason("");
-                setPunishDuration("");
+        deleteUser(staffUser.id)
+            .then(() => {
+                onDeleted?.(staffUser.id);
+                closeModal();
             })
-            .catch((res) => setError(res.data?.message ?? `Failed to ${type === "BAN" ? "ban" : "mute"} user.`))
-            .finally(() => setPunishLoading(false));
-    };
-
-    const revoke = (punishmentId: number) => {
-        setPunishLoading(true);
-        setError("");
-
-        revokePunishment(punishmentId)
-            .then(() => setPunishments((current) => current.filter((p) => p.id !== punishmentId)))
-            .catch((res) => setError(res.data?.message ?? "Failed to revoke punishment."))
-            .finally(() => setPunishLoading(false));
+            .catch((res) => setError(res.data?.message ?? "Failed to delete account."))
+            .finally(() => setDeleteLoading(false));
     };
 
     const saveGroups = () => {
@@ -191,29 +168,7 @@ export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated 
                 <Button.GenericButton onClick={saveAvatar}>Set Avatar</Button.GenericButton>
             </Modal.ModalButtonContainer>
 
-            {(canBan || canMute) && <>
-                <Modal.ModalBody>
-                    <div style={{ fontWeight: "bold", marginBottom: 5 }}>Moderation</div>
-
-                    {punishments.length > 0 && <div style={{ marginBottom: 10 }}>
-                        {punishments.map((p) => <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                            <span>
-                                <b>{p.type}</b> - {p.reason} (expires {new Date(p.expiresAt).getTime() - Date.now() > 1000 * 60 * 60 * 24 * 365 ? "never" : new Date(p.expiresAt).toLocaleString()})
-                            </span>
-
-                            <Button.GenericButton onClick={() => revoke(p.id)}>Revoke</Button.GenericButton>
-                        </div>)}
-                    </div>}
-
-                    <Input placeholder="Reason" value={punishReason} onChange={(e) => setPunishReason(e.target.value)} />
-                    <Input type="number" placeholder="Duration in minutes (blank = permanent)" value={punishDuration} onChange={(e) => setPunishDuration(e.target.value)} />
-                </Modal.ModalBody>
-
-                <Modal.ModalButtonContainer loading={punishLoading}>
-                    {canBan && <Button.GenericButton onClick={() => submitPunish("BAN")}>Ban</Button.GenericButton>}
-                    {canMute && <Button.GenericButton onClick={() => submitPunish("MUTE")}>Mute</Button.GenericButton>}
-                </Modal.ModalButtonContainer>
-            </>}
+            {canModerate && <ModerationPanel userId={staffUser.id} username={staffUser.username} showHeader={false} />}
 
             {isSuperAdmin && <>
                 <Modal.ModalBody>
@@ -224,6 +179,15 @@ export default function StaffEditUserModal({ staffUser, isSuperAdmin, onUpdated 
 
                 <Modal.ModalButtonContainer loading={groupsLoading}>
                     <Button.GenericButton onClick={saveGroups}>Save Roles</Button.GenericButton>
+                </Modal.ModalButtonContainer>
+
+                <Modal.ModalBody>
+                    <div style={{ fontWeight: "bold", marginBottom: 5, color: "#E02424" }}>Danger Zone</div>
+                    {deleteConfirming && <div>Click again to permanently delete this account.</div>}
+                </Modal.ModalBody>
+
+                <Modal.ModalButtonContainer loading={deleteLoading}>
+                    <Button.GenericButton onClick={submitDelete}>{deleteConfirming ? "Confirm Delete Account" : "Delete Account"}</Button.GenericButton>
                 </Modal.ModalButtonContainer>
             </>}
 

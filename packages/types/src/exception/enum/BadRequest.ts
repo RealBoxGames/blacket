@@ -6,6 +6,7 @@ export enum BadRequest {
     AUTH_OTP_ALREADY_ENABLED = "You have already enabled OTP on your account.",
     AUTH_WEBAUTHN_FAILED = "WebAuthn authentication failed.",
     AUTH_INCORRECT_ACCESS_CODE = "The access code you entered was incorrect.",
+    AUTH_MULTIPLE_ACCOUNTS_NOT_ALLOWED = "An account already exists from this network. Multiple accounts are not allowed.",
     AUCTIONS_INVALID_DURATION = "The duration you entered is invalid.",
     SETTINGS_INVALID_SETTING_VALUE = "The value you entered for the setting is invalid.",
     SETTINGS_OTP_ALREADY_ENABLED = "You have already enabled OTP on your account.",

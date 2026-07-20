@@ -593,6 +593,7 @@ export interface Room {
   id: number;
   name: string;
   public: boolean;
+  isDm: boolean;
   createdAt: Date;
   updatedAt: Date;
   messages?: Message[];
@@ -647,6 +648,9 @@ export interface Subscription {
   monthlyPriceId: string | null;
   yearlyPriceId: string | null;
   lifetimePrice: number | null;
+  tokenPrice: number | null;
+  diamondPrice: number | null;
+  crystalPrice: number | null;
   imageId: number | null;
   groupId: number | null;
   rewards?: Reward[];
@@ -719,8 +723,10 @@ export interface User {
   emailVerified: boolean;
   avatarId: number | null;
   customAvatarId: number | null;
+  customAvatarUrl: string | null;
   bannerId: number | null;
   customBannerId: number | null;
+  customBannerUrl: string | null;
   titleId: number;
   fontId: number;
   color: string;

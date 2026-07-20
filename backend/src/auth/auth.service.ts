@@ -65,6 +65,15 @@ export class AuthService {
 
         if (await this.usersService.userExists(dto.username)) throw new BadRequestException(BadRequest.AUTH_USERNAME_TAKEN);
 
+        if (this.configService.get<string>("SERVER_ALLOW_MULTIPLE_ACCOUNTS") !== "true") {
+            const existingIp = await this.prismaService.ipAddress.findUnique({
+                where: { ipAddress: ip },
+                select: { users: { select: { id: true }, take: 1 } }
+            });
+
+            if (existingIp && existingIp.users.length > 0) throw new BadRequestException(BadRequest.AUTH_MULTIPLE_ACCOUNTS_NOT_ALLOWED);
+        }
+
         return await this.prismaService.$transaction(async (tx) => {
             const user = await this.usersService.createUser(dto.username, dto.password, ip,);
 

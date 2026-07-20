@@ -73,8 +73,10 @@ model User {
     emailVerified           Boolean             @default(false)
     avatarId                Int?
     customAvatarId          Int?
+    customAvatarUrl         String?
     bannerId                Int?
     customBannerId          Int?
+    customBannerUrl         String?
     titleId                 Int
     fontId                  Int
     color                   String              @default("#ffffff")

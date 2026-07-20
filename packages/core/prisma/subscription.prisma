@@ -16,6 +16,11 @@ model Subscription {
 
     lifetimePrice Float?
 
+    // in-game currency price for buying this plan outright (lifetime), instead of real money
+    tokenPrice   Int?
+    diamondPrice Int?
+    crystalPrice Int?
+
     imageId Int?
 
     groupId Int?

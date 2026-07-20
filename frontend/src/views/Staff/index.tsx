@@ -11,8 +11,7 @@ import { PermissionTypeEnum, StaffUserEntity } from "@blacket/types";
 
 import { useSearchUsers } from "@controllers/staff/useSearchUsers";
 import StaffEditUserModal from "./components/StaffEditUserModal";
-
-const SUPER_ADMIN_USERNAME = "FRANXE";
+import { isOwnerTier } from "@functions/staff/isOwnerTier";
 
 export default function StaffPanel() {
     const { user } = useUser();
@@ -25,9 +24,9 @@ export default function StaffPanel() {
     const [results, setResults] = useState<StaffUserEntity[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
-    if (!user || !user.hasPermission(PermissionTypeEnum.VIEW_AUDIT)) return <Navigate to="/login" />;
+    if (!user || !user.hasPermission(PermissionTypeEnum.MANAGE_DATA)) return <Navigate to="/login" />;
 
-    const isSuperAdmin = user.username === SUPER_ADMIN_USERNAME;
+    const isSuperAdmin = isOwnerTier(user);
 
     const doSearch = () => {
         setLoading(true);
@@ -49,6 +48,7 @@ export default function StaffPanel() {
             staffUser={staffUser}
             isSuperAdmin={isSuperAdmin}
             onUpdated={(updated) => setResults((current) => current.map((u) => (u.id === updated.id ? updated : u)))}
+            onDeleted={(userId) => setResults((current) => current.filter((u) => u.id !== userId))}
         />);
     };
 

@@ -16,12 +16,17 @@ const ROLE_COLORS: RoleColor[] = [
     }
 ];
 
-// Checked in this order so an Owner who also holds MVP/VIP only shows the highest tag.
+// Checked in this order so a user with multiple roles only shows the highest tag.
 // These colors are fixed and not user-configurable, unlike the username color itself.
 const GROUP_BADGES: { name: string; text: string; color?: string; className?: string }[] = [
+    { name: "Developer", text: "DEVELOPER", className: "rainbowBadge" },
     { name: "Owner", text: "OWNER", className: "rainbowBadge" },
+    { name: "Admin", text: "ADMIN", color: "#E02424" },
+    { name: "Moderator", text: "MOD", color: "#2563EB" },
+    { name: "Helper", text: "HELPER", color: "#16A34A" },
     { name: "MVP", text: "MVP", color: "linear-gradient(45deg, #FFD700, #FFA500)" },
-    { name: "VIP", text: "VIP", color: "linear-gradient(45deg, #8A2BE2, #4B0082)" }
+    { name: "VIP", text: "VIP", color: "linear-gradient(45deg, #8A2BE2, #4B0082)" },
+    { name: "Bot", text: "BOT", color: "#5865F2" }
 ];
 
 export default function Username({ user, className, style = {}, ...props }: UsernameProps) {
